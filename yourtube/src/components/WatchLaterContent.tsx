@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import axiosInstance from "@/lib/axiosinstance";
+import { getVideoSrc } from "@/lib/utils";
 import { useUser } from "@/lib/AuthContext";
 
 export default function WatchLaterContent() {
@@ -92,7 +93,7 @@ export default function WatchLaterContent() {
             <Link href={`/watch/${item.videoid._id}`} className="flex-shrink-0">
               <div className="relative w-24 sm:w-40 aspect-video bg-gray-100 rounded overflow-hidden">
                 <video
-                  src={`${process.env.BACKEND_URL}/${item.videoid?.filepath}`}
+                  src={getVideoSrc(item.videoid?.filepath)}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                 />
               </div>

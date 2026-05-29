@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
+import { getVideoSrc } from "@/lib/utils";
 
 interface VideoPlayerProps {
   video: {
@@ -174,7 +175,7 @@ export default function VideoPlayer({
         poster={`/placeholder.svg?height=480&width=854`}
       >
         <source
-          src={`${process.env.BACKEND_URL}/${video?.filepath}`}
+          src={getVideoSrc(video?.filepath)}
           type="video/mp4"
         />
         Your browser does not support the video tag.

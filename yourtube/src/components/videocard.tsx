@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { Avatar, AvatarFallback } from "./ui/avatar";
+import { getVideoSrc } from "@/lib/utils";
 
 const videos = "/video/vdo.mp4";
 export default function VideoCard({ video }: any) {
@@ -9,7 +10,7 @@ export default function VideoCard({ video }: any) {
     <Link href={`/watch/${video?._id}`} className="group flex flex-col h-full">
       <div className="aspect-video rounded-lg overflow-hidden bg-gray-100 relative flex-shrink-0">
         <video
-          src={`${process.env.BACKEND_URL}/${video?.filepath}`}
+          src={getVideoSrc(video?.filepath)}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
         />
         <div className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 bg-black/80 text-white text-xs px-1 rounded">

@@ -3,25 +3,30 @@ import cors from "cors";
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
 import mongoose from "mongoose";
+import { fileURLToPath } from "url";
+import path from "path";
 import userroutes from "./routes/auth.js";
 import videoroutes from "./routes/video.js";
 import likeroutes from "./routes/like.js";
 import watchlaterroutes from "./routes/watchlater.js";
 import historyrroutes from "./routes/history.js";
 import commentroutes from "./routes/comment.js";
-dotenv.config();
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, ".env") });
+console.log('Loaded env from:', path.resolve(__dirname, '.env'));
+console.log('BLOB_READ_WRITE_TOKEN present:', Boolean(process.env.BLOB_READ_WRITE_TOKEN));
 const app = express();
-import path from "path";
-app.use(cors({
-  origin: process.env.PUBLIC_URL
-}));
+app.use(
+  cors({
+    origin: process.env.PUBLIC_URL,
+  })
+);
 app.use(express.json({ limit: "30mb", extended: true }));
 app.use(express.urlencoded({ limit: "30mb", extended: true }));
-app.use("/uploads", express.static(path.join("uploads")));
 app.get("/", (req, res) => {
-  return res.status(200).json({message:"Connected"})
+  return res.status(200).json({ message: "Connected" });
 });
-app.use(bodyParser.json());
+// app.use(bodyParser.json());
 app.use("/user", userroutes);
 app.use("/video", videoroutes);
 app.use("/like", likeroutes);
