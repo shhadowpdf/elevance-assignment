@@ -93,7 +93,15 @@ const Header = ({ isSidebarOpen, onSidebarToggle, onSidebarClose }: HeaderProps)
       <div className="flex items-center gap-2">
         {user ? (
           <>
-            <Button variant="ghost" size="icon">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                const roomId = Math.random().toString(36).substring(2, 11);
+                router.push(`/call/${roomId}`);
+              }}
+              title="Start a call"
+            >
               <VideoIcon className="w-6 h-6" />
             </Button>
             <Button variant="ghost" size="icon">

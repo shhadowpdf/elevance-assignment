@@ -34,8 +34,56 @@ app.use("/watch", watchlaterroutes);
 app.use("/history", historyrroutes);
 app.use("/comment", commentroutes);
 const PORT = process.env.PORT || 5000;
+import http from "http";
+import { Server } from "socket.io";
 
-app.listen(PORT, () => {
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: process.env.PUBLIC_URL || "*",
+  },
+});
+
+io.on("connection", (socket) => {
+  console.log("socket connected:", socket.id);
+
+  socket.on("join-room", (roomId) => {
+    socket.join(roomId);
+    socket.to(roomId).emit("new-peer", socket.id);
+  });
+
+  socket.on("offer", ({ to, sdp }) => {
+    if (!to) return;
+    io.to(to).emit("offer", { from: socket.id, sdp });
+  });
+
+  socket.on("answer", ({ to, sdp }) => {
+    if (!to) return;
+    io.to(to).emit("answer", { from: socket.id, sdp });
+  });
+
+  socket.on("ice-candidate", ({ to, candidate }) => {
+    if (!to) return;
+    io.to(to).emit("ice-candidate", { from: socket.id, candidate });
+  });
+
+  socket.on("leave-room", (roomId) => {
+    socket.leave(roomId);
+    socket.to(roomId).emit("peer-left", socket.id);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("socket disconnected:", socket.id);
+    // Notify peers in all rooms the socket was in
+    socket.rooms.forEach((room) => {
+      if (room === socket.id) return;
+      socket.to(room).emit("peer-left", socket.id);
+    });
+  });
+});
+
+server.listen(PORT, () => {
   console.log(`server running on port ${PORT}`);
 });
 
