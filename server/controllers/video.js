@@ -2,32 +2,19 @@ import video from "../Modals/video.js";
 import { put } from "@vercel/blob";
 
 export const uploadvideo = async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: "Please upload a video file." });
-  }
-
   try {
-    const safeFileName = `${Date.now()}-${req.file.originalname}`
-      .replace(/\s+/g, "-")
-      .replace(/[^a-zA-Z0-9-_.]/g, "");
-
-    const uploadResult = await put(safeFileName, req.file.buffer, {
-      token: process.env.BLOB_READ_WRITE_TOKEN,
-      contentType: req.file.mimetype,
-      access: "public",
-    });
 
     const file = new video({
       videotitle: req.body.videotitle,
-      filename: req.file.originalname,
-      filepath: uploadResult.url,
-      filetype: req.file.mimetype,
-      filesize: req.file.size,
+      filename: req.body.filename,
+      filepath: req.body.filepath,
+      filetype: req.body.filetype,
+      filesize: req.body.filesize,
       videochanel: req.body.videochanel,
       uploader: req.body.uploader,
     });
     await file.save();
-    return res.status(201).json({ message: "file uploaded successfully", url: uploadResult.url });
+    return res.status(201).json({ message: "file uploaded successfully", url: req.body.filepath });
   } catch (error) {
     console.error("uploadvideo error:", error);
     return res.status(500).json({ message: "Something went wrong" });

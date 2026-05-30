@@ -1,4 +1,6 @@
 import { Check, FileVideo, Upload, X } from "lucide-react";
+import { type PutBlobResult } from "@vercel/blob";
+import { upload } from "@vercel/blob/client";
 import React, { ChangeEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "./ui/button";
@@ -14,6 +16,7 @@ const VideoUploader = ({ channelId, channelName }: any) => {
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [videoTitle, setVideoTitle] = useState("");
   const [uploadComplete, setUploadComplete] = useState(false);
+  const [blob, setBlob] = useState<PutBlobResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlefilechange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -81,23 +84,28 @@ const VideoUploader = ({ channelId, channelName }: any) => {
       setIsUploading(true);
       setUploadProgress(0);
 
+      const newBlob = await upload(videoTitle, videoFile, {
+        access: "public",
+        handleUploadUrl: "/api/video/upload",
+      });
+
       const formdata = new FormData();
-      formdata.append("file", videoFile);
       formdata.append("videotitle", videoTitle);
       formdata.append("videochanel", channelName);
       formdata.append("uploader", channelId);
+      formdata.append("filesize", videoFile.size.toString());
+      formdata.append("filetype", videoFile.type);
+      formdata.append("filename", videoFile.name);
+      formdata.append("filepath", newBlob.url); 
+
 
       await axiosInstance.post("/video/upload", formdata, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        onUploadProgress: (progresEvent: any) => {
-          const progress = Math.round(
-            (progresEvent.loaded * 100) / progresEvent.total
-          );
-          setUploadProgress(progress);
+      headers: {
+          "Content-Type": "application/json",
         },
       });
+      
+      setBlob(newBlob);
 
       toast.success("Upload successfully");
       resetForm();
@@ -173,7 +181,8 @@ const VideoUploader = ({ channelId, channelName }: any) => {
                   <div className="p-3 space-y-2">
                     <p className="text-sm font-medium">Preview</p>
                     <p className="text-xs text-gray-500">
-                      Your selected video will be uploaded to the backend and shown here while uploading.
+                      Your selected video will be uploaded to the backend and
+                      shown here while uploading.
                     </p>
                     {isUploading && (
                       <div className="space-y-2">
@@ -211,7 +220,9 @@ const VideoUploader = ({ channelId, channelName }: any) => {
                   </Button>
                   <Button
                     onClick={handleUpload}
-                    disabled={isUploading || !videoTitle.trim() || uploadComplete}
+                    disabled={
+                      isUploading || !videoTitle.trim() || uploadComplete
+                    }
                   >
                     {isUploading ? "Uploading..." : "Upload"}
                   </Button>
