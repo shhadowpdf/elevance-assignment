@@ -6,6 +6,17 @@ const userschema = mongoose.Schema({
   description: { type: String },
   image: { type: String },
   joinedon: { type: Date, default: Date.now },
+  isPremium: { type: Boolean, default: false },
+  downloadCountToday: { type: Number, default: 0 },
+  lastDownloadDate: { type: Date },
+  downloads: [
+    {
+      videoid: { type: mongoose.Schema.Types.ObjectId, ref: "videofiles" },
+      title: { type: String },
+      url: { type: String },
+      downloadedAt: { type: Date, default: Date.now },
+    },
+  ],
 });
 
 export default mongoose.model("user", userschema);

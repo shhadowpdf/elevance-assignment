@@ -22,9 +22,9 @@ const index = () => {
       if (!id || typeof id !== "string") return;
       try {
         const res = await axiosInstance.get("/video/getall");
-        const video = res.data?.filter((vid: any) => vid._id === id);
-        setvideo(video[0]);
-        setvide(res.data);
+        const selectedVideo = res.data?.find((vid: any) => vid._id === id);
+        setvide(selectedVideo);
+        setvideo(res.data);
       } catch (error) {
         console.log(error);
       } finally {
@@ -53,12 +53,12 @@ const index = () => {
     setGestureMessage("⏭️ Skipping to Next Video");
     setTimeout(() => setGestureMessage(""), 2000);
     // Find and navigate to next video
-    if (video && Array.isArray(video) && video.length > 0) {
-      const currentIndex = video.findIndex((v: any) => v._id === id);
-      if (currentIndex < video.length - 1) {
-        router.push(`/watch/${video[currentIndex + 1]._id}`);
+    if (videos && Array.isArray(videos) && videos.length > 0 && video) {
+      const currentIndex = videos.findIndex((v: any) => v._id === id);
+      if (currentIndex < videos.length - 1) {
+        router.push(`/watch/${videos[currentIndex + 1]._id}`);
       } else {
-        router.push(`/watch/${video[0]._id}`);
+        router.push(`/watch/${videos[0]._id}`);
       }
     }
   };
@@ -86,7 +86,7 @@ const index = () => {
     return <div className="flex items-center justify-center min-h-screen">Loading..</div>;
   }
   
-  if (!videos) {
+  if (!video) {
     return <div className="flex items-center justify-center min-h-screen">Video not found</div>;
   }
 
@@ -103,7 +103,7 @@ const index = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
             <Videopplayer
-              video={videos}
+              video={video}
               onSkipForward={handleSkipForward}
               onSkipBackward={handleSkipBackward}
               onTogglePlay={handleTogglePlay}
@@ -111,7 +111,7 @@ const index = () => {
               onCloseWebsite={handleCloseWebsite}
               onOpenComments={handleOpenComments}
             />
-            <VideoInfo video={videos} />
+            <VideoInfo video={video} />
             {showComments && (
               <div ref={commentsRef}>
                 <Comments videoId={id} />
@@ -119,7 +119,7 @@ const index = () => {
             )}
           </div>
           <div className="space-y-4">
-            <RelatedVideos videos={video} />
+            <RelatedVideos videos={videos} />
           </div>
         </div>
       </div>
@@ -139,5 +139,5 @@ const index = () => {
     </div>
   );
 };
-
+    
 export default index;

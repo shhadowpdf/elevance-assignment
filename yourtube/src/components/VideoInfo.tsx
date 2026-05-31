@@ -12,10 +12,11 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { useUser } from "@/lib/AuthContext";
 import axiosInstance from "@/lib/axiosinstance";
+import { toast } from "sonner";
 
 const VideoInfo = ({ video }: any) => {
-  const [likes, setlikes] = useState(video.Like || 0);
-  const [dislikes, setDislikes] = useState(video.Dislike || 0);
+  const [likes, setlikes] = useState(video?.Like || 0);
+  const [dislikes, setDislikes] = useState(video?.Dislike || 0);
   const [isLiked, setIsLiked] = useState(false);
   const [isDisliked, setIsDisliked] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
@@ -29,14 +30,18 @@ const VideoInfo = ({ video }: any) => {
   //   image: "https://github.com/shadcn.png?height=32&width=32",
   // };
   useEffect(() => {
-    setlikes(video.Like || 0);
-    setDislikes(video.Dislike || 0);
+    setlikes(video?.Like || 0);
+    setDislikes(video?.Dislike || 0);
     setIsLiked(false);
     setIsDisliked(false);
   }, [video]);
 
   useEffect(() => {
     const handleviews = async () => {
+      if (!video?._id) {
+        return;
+      }
+
       if (user) {
         try {
           return await axiosInstance.post(`/history/${video._id}`, {
@@ -46,11 +51,11 @@ const VideoInfo = ({ video }: any) => {
           return console.log(error);
         }
       } else {
-        return await axiosInstance.post(`/history/views/${video?._id}`);
+        return await axiosInstance.post(`/history/views/${video._id}`);
       }
     };
     handleviews();
-  }, [user]);
+  }, [user, video]);
   const handleLike = async () => {
     if (!user) return;
     try {
@@ -111,6 +116,37 @@ const VideoInfo = ({ video }: any) => {
       console.log(error);
     }
   };
+
+  const handleDownload = async () => {
+    if (!user) {
+      toast.error("Please sign in to download videos.");
+      return;
+    }
+
+    if (!video?.filepath) {
+      toast.error("Video cannot be downloaded right now.");
+      return;
+    }
+
+    try {
+      const res = await axiosInstance.post(`/user/download/${video._id}`, {
+        userId: user._id,
+      });
+      if(res.data?.alreadyDownloaded) {
+        toast.error("You have already downloaded this video. Please check downloads section.");
+        return;
+      }
+      const downloadLink = document.createElement("a");
+      downloadLink.href = video.filepath;
+      downloadLink.download = `${video.videotitle?.replace(/[^a-z0-9]/gi, "_") || "video"}.mp4`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      downloadLink.remove();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Unable to download this video.");
+    }
+  };
+
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">{video.videotitle}</h1>
@@ -165,7 +201,12 @@ const VideoInfo = ({ video }: any) => {
             <Share className="w-5 h-5 mr-2" />
             Share
           </Button>
-          <Button variant="ghost" size="sm" className="bg-gray-100 rounded-full">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="bg-gray-100 rounded-full"
+            onClick={handleDownload}
+          >
             <Download className="w-5 h-5 mr-2" />
             Download
           </Button>
@@ -176,8 +217,8 @@ const VideoInfo = ({ video }: any) => {
       </div>
       <div className="bg-gray-100 rounded-lg p-4">
         <div className="flex gap-4 text-sm font-medium mb-2">
-          <span>{video.views.toLocaleString()} views</span>
-          <span>{formatDistanceToNow(new Date(video.createdAt))} ago</span>
+          <span>{video?.views ? video.views.toLocaleString() : "0"} views</span>
+          <span>{formatDistanceToNow(new Date(video?.createdAt))} ago</span>
         </div>
         <div className={`text-sm ${showFullDescription ? "" : "line-clamp-3"}`}>
           <p>
