@@ -12,6 +12,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { useUser } from "@/lib/AuthContext";
 import axiosInstance from "@/lib/axiosinstance";
+import { getVideoSrc } from "@/lib/utils";
 import { toast } from "sonner";
 
 const VideoInfo = ({ video }: any) => {
@@ -137,7 +138,7 @@ const VideoInfo = ({ video }: any) => {
         return;
       }
       const downloadLink = document.createElement("a");
-      downloadLink.href = video.filepath;
+      downloadLink.href = getVideoSrc(video.filepath);
       downloadLink.download = `${video.videotitle?.replace(/[^a-z0-9]/gi, "_") || "video"}.mp4`;
       document.body.appendChild(downloadLink);
       downloadLink.click();

@@ -19,7 +19,6 @@ export default function App({ Component, pageProps }: AppProps) {
           onSidebarClose={() => setIsSidebarOpen(false)}
         />
         <Toaster />
-        {/* Mobile overlay backdrop */}
         {isSidebarOpen && (
           <div
             className="fixed inset-0 bg-black/50 z-30 md:hidden"
@@ -27,11 +26,9 @@ export default function App({ Component, pageProps }: AppProps) {
           />
         )}
         <div className="flex relative">
-          {/* Desktop sidebar - always visible */}
           <div className="hidden md:block">
             <Sidebar />
           </div>
-          {/* Mobile sidebar - overlay when open */}
           {isSidebarOpen && (
             <div className="fixed inset-y-0 left-0 z-40 md:hidden">
               <Sidebar mobile={true} onClose={() => setIsSidebarOpen(false)} />

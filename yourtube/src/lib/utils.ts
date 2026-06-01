@@ -11,7 +11,8 @@ export function getVideoSrc(filepath?: string) {
     return filepath
   }
 
-  const backendUrl = process.env.BACKEND_URL || ""
+  const backendUrl =
+    process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL || ""
   const normalized = backendUrl.endsWith("/")
     ? backendUrl.slice(0, -1)
     : backendUrl

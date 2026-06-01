@@ -11,12 +11,6 @@ const index = () => {
   const router = useRouter();
   const { id } = router.query;
   const { user } = useUser();
-  // const user: any = {
-  //   id: "1",
-  //   name: "John Doe",
-  //   email: "john@example.com",
-  //   image: "https://github.com/shadcn.png?height=32&width=32",
-  // };
   try {
     let channel = user;
    
@@ -54,7 +48,7 @@ const index = () => {
           <ChannelHeader channel={channel} user={user} />
           <Channeltabs />
           <div className="px-4 pb-8">
-            <VideoUploader channelId={id} channelName={channel?.channelname} />
+            <VideoUploader channelId={user?._id || id} channelName={user?.channelname || user?.name} />
           </div>
           <div className="px-4 pb-8">
             <ChannelVideos videos={videos} />

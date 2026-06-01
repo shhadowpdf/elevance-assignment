@@ -8,8 +8,10 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Progress } from "./ui/progress";
 import axiosInstance from "@/lib/axiosinstance";
+import { useUser } from "@/lib/AuthContext";
 
 const VideoUploader = ({ channelId, channelName }: any) => {
+  const { user } = useUser();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -75,6 +77,11 @@ const VideoUploader = ({ channelId, channelName }: any) => {
   }, [videoPreviewUrl]);
 
   const handleUpload = async () => {
+    if (!user?._id) {
+      toast.error("Sign in to upload videos.");
+      return;
+    }
+
     if (!videoFile || !videoTitle.trim()) {
       toast.error("Please provide file and title");
       return;
@@ -91,20 +98,15 @@ const VideoUploader = ({ channelId, channelName }: any) => {
 
       const formdata = new FormData();
       formdata.append("videotitle", videoTitle);
-      formdata.append("videochanel", channelName);
-      formdata.append("uploader", channelId);
+      formdata.append("videochanel", user?.channelname || channelName || user?.name || "Your channel");
+      formdata.append("uploader", user._id);
       formdata.append("filesize", videoFile.size.toString());
       formdata.append("filetype", videoFile.type);
       formdata.append("filename", videoFile.name);
-      formdata.append("filepath", newBlob.url); 
+      formdata.append("filepath", newBlob.url);
 
+      await axiosInstance.post("/video/upload", formdata);
 
-      await axiosInstance.post("/video/upload", formdata, {
-      headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      
       setBlob(newBlob);
 
       toast.success("Upload successfully");
@@ -212,22 +214,29 @@ const VideoUploader = ({ channelId, channelName }: any) => {
               </div>
             </div>
 
-            <div className="flex justify-end gap-3">
-              {!uploadComplete && (
-                <>
-                  <Button onClick={cancelUpload} disabled={uploadComplete}>
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleUpload}
-                    disabled={
-                      isUploading || !videoTitle.trim() || uploadComplete
-                    }
-                  >
-                    {isUploading ? "Uploading..." : "Upload"}
-                  </Button>
-                </>
+            <div className="flex justify-between gap-3 items-center">
+              {!user && (
+                <p className="text-sm text-red-600">
+                  Sign in to upload videos and enforce plan-based upload limits.
+                </p>
               )}
+              <div className="flex justify-end gap-3">
+                {!uploadComplete && (
+                  <>
+                    <Button onClick={cancelUpload} disabled={uploadComplete}>
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleUpload}
+                      disabled={
+                        isUploading || !user || !videoTitle.trim() || uploadComplete
+                      }
+                    >
+                      {isUploading ? "Uploading..." : "Upload"}
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         )}

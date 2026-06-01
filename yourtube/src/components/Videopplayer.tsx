@@ -9,12 +9,14 @@ interface VideoPlayerProps {
     videotitle: string;
     filepath: string;
   };
+  maxWatchSeconds?: number | null;
   onSkipForward?: () => void;
   onSkipBackward?: () => void;
   onTogglePlay?: (paused: boolean) => void;
   onSkipNext?: () => void;
   onCloseWebsite?: () => void;
   onOpenComments?: () => void;
+  onWatchLimitReached?: (limitSeconds: number) => void;
 }
 
 interface TapState {
@@ -26,15 +28,18 @@ interface TapState {
 
 export default function VideoPlayer({
   video,
+  maxWatchSeconds = null,
   onSkipForward,
   onSkipBackward,
   onTogglePlay,
   onSkipNext,
   onCloseWebsite,
   onOpenComments,
+  onWatchLimitReached,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const watchLimitTriggeredRef = useRef(false);
   const tapStateRef = useRef<TapState>({
     zone: null,
     count: 0,
@@ -44,6 +49,46 @@ export default function VideoPlayer({
     message: string;
     position: { x: number; y: number };
   } | null>(null);
+
+  useEffect(() => {
+    watchLimitTriggeredRef.current = false;
+  }, [video?._id, maxWatchSeconds]);
+
+  useEffect(() => {
+    const videoElement = videoRef.current;
+
+    if (!videoElement || maxWatchSeconds === null) {
+      return;
+    }
+
+    const enforceWatchLimit = () => {
+      if (videoElement.currentTime < maxWatchSeconds) {
+        return;
+      }
+
+      videoElement.currentTime = maxWatchSeconds;
+
+      if (!videoElement.paused) {
+        videoElement.pause();
+        onTogglePlay?.(true);
+      }
+
+      if (!watchLimitTriggeredRef.current) {
+        watchLimitTriggeredRef.current = true;
+        onWatchLimitReached?.(maxWatchSeconds);
+      }
+    };
+
+    videoElement.addEventListener("timeupdate", enforceWatchLimit);
+    videoElement.addEventListener("seeking", enforceWatchLimit);
+    videoElement.addEventListener("play", enforceWatchLimit);
+
+    return () => {
+      videoElement.removeEventListener("timeupdate", enforceWatchLimit);
+      videoElement.removeEventListener("seeking", enforceWatchLimit);
+      videoElement.removeEventListener("play", enforceWatchLimit);
+    };
+  }, [maxWatchSeconds, onTogglePlay, onWatchLimitReached, video?._id]);
 
   const executeTapAction = (zone: "left" | "center" | "right", tapCount: number) => {
     if (tapCount === 1 && zone === "center") {
@@ -163,6 +208,8 @@ export default function VideoPlayer({
     }
   }, [onSkipForward, onSkipBackward, onTogglePlay, onSkipNext, onCloseWebsite, onOpenComments]);
 
+  const videoSrc = getVideoSrc(video?.filepath);
+
   return (
     <div
       ref={containerRef}
@@ -172,12 +219,11 @@ export default function VideoPlayer({
         ref={videoRef}
         className="w-full h-full"
         controls
-        poster={`/placeholder.svg?height=480&width=854`}
+        poster="/placeholder.svg"
       >
-        <source
-          src={getVideoSrc(video?.filepath)}
-          type="video/mp4"
-        />
+        {videoSrc ? (
+          <source src={videoSrc} type="video/mp4" />
+        ) : null}
         Your browser does not support the video tag.
       </video>
 

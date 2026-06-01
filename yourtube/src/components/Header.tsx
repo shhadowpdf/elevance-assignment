@@ -77,7 +77,6 @@ const Header = ({ isSidebarOpen, onSidebarToggle, onSidebarClose }: HeaderProps)
           <Mic className="w-5 h-5" />
         </Button>
       </form>
-      {/* Mobile search button */}
       <div className="md:hidden">
         <Button
           variant="ghost"
@@ -147,6 +146,9 @@ const Header = ({ isSidebarOpen, onSidebarToggle, onSidebarClose }: HeaderProps)
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/downloads">Downloads</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/subscriptions">Plans & upgrades</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout}>Sign out</DropdownMenuItem>

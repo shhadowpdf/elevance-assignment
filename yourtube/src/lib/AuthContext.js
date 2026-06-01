@@ -11,8 +11,18 @@ export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
 
   const login = (userdata) => {
-    setUser(userdata);
-    localStorage.setItem("user", JSON.stringify(userdata));
+    const normalizedUser = userdata
+      ? {
+          ...userdata,
+          id: userdata.id || userdata._id,
+        }
+      : null;
+
+    setUser(normalizedUser);
+
+    if (normalizedUser) {
+      localStorage.setItem("user", JSON.stringify(normalizedUser));
+    }
   };
   const logout = async () => {
     setUser(null);
@@ -23,6 +33,7 @@ export const UserProvider = ({ children }) => {
       console.error("Error during sign out:", error);
     }
   };
+
   const handlegooglesignin = async () => {
     try {
       const result = await signInWithPopup(auth, provider);
@@ -38,6 +49,26 @@ export const UserProvider = ({ children }) => {
       console.error(error);
     }
   };
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const storedUser = localStorage.getItem("user");
+
+    if (!storedUser) {
+      return;
+    }
+
+    try {
+      login(JSON.parse(storedUser));
+    } catch (error) {
+      console.error("Unable to read stored user:", error);
+      localStorage.removeItem("user");
+    }
+  }, []);
+
   useEffect(() => {
     const unsubcribe = onAuthStateChanged(auth, async (firebaseuser) => {
       if (firebaseuser) {

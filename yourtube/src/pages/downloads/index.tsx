@@ -1,139 +1,86 @@
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import axiosInstance from "@/lib/axiosinstance";
-import { useUser } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { getVideoSrc } from "@/lib/utils";
-import { toast } from "sonner";
+import { useUser } from "@/lib/AuthContext";
+import {
+  formatPrice,
+  formatWatchLimit,
+  getEffectivePlanCode,
+  getPlanConfig,
+} from "@/lib/plans";
 
 const DownloadsPage = () => {
-  const { user, login } = useUser();
+  const { user } = useUser();
   const [downloads, setDownloads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isPremium, setIsPremium] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [planCode, setPlanCode] = useState(getEffectivePlanCode(user));
+  const [planName, setPlanName] = useState(getPlanConfig(planCode).name);
+  const [watchLimitMinutes, setWatchLimitMinutes] = useState<number | null>(
+    getPlanConfig(planCode).watchLimitMinutes
+  );
   const [downloadCountToday, setDownloadCountToday] = useState(0);
   const [lastDownloadDate, setLastDownloadDate] = useState<string | null>(null);
-  const [paymentLoading, setPaymentLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const effectivePlanCode = getEffectivePlanCode(user);
+    const effectivePlan = getPlanConfig(effectivePlanCode);
+
+    setPlanCode(effectivePlanCode);
+    setPlanName(user?.planName || effectivePlan.name);
+    setWatchLimitMinutes(
+      typeof user?.watchLimitMinutes === "number" || user?.watchLimitMinutes === null
+        ? user.watchLimitMinutes
+        : effectivePlan.watchLimitMinutes
+    );
+  }, [user]);
 
   useEffect(() => {
     if (!user) {
+      setDownloads([]);
       setLoading(false);
       return;
     }
+
+    const fetchDownloads = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const res = await axiosInstance.get(`/user/downloads/${user._id}`);
+        const responsePlanCode = res.data.planCode || "free";
+        const responsePlan = getPlanConfig(responsePlanCode);
+
+        setDownloads(res.data.downloads || []);
+        setPlanCode(responsePlanCode);
+        setPlanName(res.data.planName || responsePlan.name);
+        setWatchLimitMinutes(
+          typeof res.data.watchLimitMinutes === "number" ||
+            res.data.watchLimitMinutes === null
+            ? res.data.watchLimitMinutes
+            : responsePlan.watchLimitMinutes
+        );
+        setDownloadCountToday(res.data.downloadCountToday || 0);
+        setLastDownloadDate(
+          res.data.lastDownloadDate
+            ? new Date(res.data.lastDownloadDate).toLocaleDateString()
+            : null
+        );
+      } catch (fetchError: any) {
+        setError(
+          fetchError?.response?.data?.message || "Unable to fetch downloads."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchDownloads();
   }, [user]);
 
-  const fetchDownloads = async () => {
-    if (!user) return;
-
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await axiosInstance.get(`/user/downloads/${user._id}`);
-      setDownloads(res.data.downloads || []);
-      setIsPremium(res.data.isPremium);
-      setDownloadCountToday(res.data.downloadCountToday || 0);
-      setLastDownloadDate(
-        res.data.lastDownloadDate
-          ? new Date(res.data.lastDownloadDate).toLocaleDateString()
-          : null,
-      );
-    } catch (fetchError: any) {
-      setError(
-        fetchError?.response?.data?.message || "Unable to fetch downloads.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadRazorpayScript = () =>
-    new Promise<boolean>((resolve, reject) => {
-      if (typeof window === "undefined") {
-        return reject(false);
-      }
-
-      if ((window as any).Razorpay) {
-        return resolve(true);
-      }
-
-      const script = document.createElement("script");
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
-      script.onload = () => resolve(true);
-      script.onerror = () => reject(false);
-      document.body.appendChild(script);
-    });
-
-  const handleUpgrade = async () => {
-    if (!user) {
-      toast.error("Please sign in to upgrade to premium.");
-      return;
-    }
-
-    setPaymentLoading(true);
-    setError(null);
-
-    try {
-      await loadRazorpayScript();
-
-      const orderResponse = await axiosInstance.post("/user/payment/order", {
-        amount: 10000,
-        currency: "INR",
-        receipt: `premium_${Date.now()}`,
-      });
-
-      const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-      const razorpayOptions = {
-        key: razorpayKey,
-        amount: orderResponse.data.amount,
-        currency: orderResponse.data.currency,
-        name: "YourTube Premium",
-        description: "Unlimited video downloads",
-        order_id: orderResponse.data.id,
-        prefill: {
-          name: user.name,
-          email: user.email,
-        },
-        theme: {
-          color: "#f97316",
-        },
-        handler: async (response: any) => {
-          try {
-            const verifyResponse = await axiosInstance.post(
-              "/user/payment/verify",
-              {
-                userId: user._id,
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-              },
-            );
-            setIsPremium(verifyResponse.data.user.isPremium);
-            login(verifyResponse.data.user);
-            fetchDownloads();
-            toast.success(
-              "Premium upgraded successfully! You can now download unlimited videos.",
-            );
-          } catch (verifyError: any) {
-            toast.error(
-              verifyError?.response?.data?.message ||
-                "Payment verification failed.",
-            );
-          }
-        },
-        modal: {
-          ondismiss: () => setPaymentLoading(false),
-        },
-      };
-
-      const rzp = new (window as any).Razorpay(razorpayOptions);
-      rzp.open();
-    } catch (payError) {
-      setError("Unable to initiate payment. Please try again later.");
-      setPaymentLoading(false);
-    }
-  };
+  const currentPlan = getPlanConfig(planCode);
 
   if (loading) {
     return (
@@ -145,45 +92,76 @@ const DownloadsPage = () => {
 
   return (
     <div className="min-h-screen bg-white px-4 py-8">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Downloads</h1>
-            <p className="mt-2 text-sm text-gray-600">
-              Downloaded videos are stored here for quick access. Free users may
-              download one video per day.
-            </p>
-          </div>
-          <div className="space-y-3 text-right">
-            {user ? (
-              <>
-                <div className="text-sm text-gray-700">
-                  Plan:{" "}
-                  <span className="font-semibold">
-                    {isPremium ? "Premium" : "Free"}
+      <div className="mx-auto max-w-6xl space-y-6">
+        <section className="overflow-hidden rounded-[28px] border border-orange-200 bg-[linear-gradient(135deg,#fff7ed_0%,#ffffff_55%,#fffaf2_100%)] p-6 shadow-[0_18px_45px_rgba(194,65,12,0.08)]">
+          <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+            <div className="max-w-2xl">
+              <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
+                Downloads
+              </h1>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                Keep your saved videos close at hand. Every paid plan includes
+                unlimited downloads, while Free stays limited to one download per day.
+              </p>
+            </div>
+
+            <div className="w-full max-w-sm rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
+                Current access
+              </div>
+              <div className="mt-3 flex items-baseline justify-between gap-4">
+                <div>
+                  <div className="text-2xl font-semibold text-slate-950">
+                    {planName}
+                  </div>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Watch limit: {formatWatchLimit(watchLimitMinutes)}
+                  </p>
+                </div>
+                <div className="rounded-full bg-slate-950 px-3 py-1 text-xs font-medium text-white">
+                  {formatPrice(currentPlan.pricePaise)}
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-2 text-sm text-slate-600">
+                <div className="flex items-center justify-between">
+                  <span>Downloads today</span>
+                  <span className="font-medium text-slate-950">
+                    {downloadCountToday}
                   </span>
                 </div>
-                <div className="text-sm text-gray-700">
-                  Today&apos;s downloads:{" "}
-                  <span className="font-semibold">{downloadCountToday}</span>
+                <div className="flex items-center justify-between">
+                  <span>Download access</span>
+                  <span className="font-medium text-slate-950">
+                    {currentPlan.rank > 0 ? "Unlimited" : "1 per day"}
+                  </span>
                 </div>
                 {lastDownloadDate && (
-                  <div className="text-sm text-gray-700">
-                    Last used: {lastDownloadDate}
+                  <div className="flex items-center justify-between">
+                    <span>Last used</span>
+                    <span className="font-medium text-slate-950">
+                      {lastDownloadDate}
+                    </span>
                   </div>
                 )}
-                {!isPremium && (
-                  <Button disabled={paymentLoading} onClick={handleUpgrade}>
-                    {paymentLoading ? "Processing..." : "Upgrade to Premium"}
-                  </Button>
-                )}
-              </>
-            ) : (
-              <div className="text-sm text-gray-700">
-                Sign in to see your downloads and upgrade to premium.
               </div>
-            )}
+
+              <div className="mt-5">
+                <Button
+                  asChild
+                  className="w-full rounded-full bg-slate-950 hover:bg-slate-800"
+                >
+                  <Link href="/subscriptions">
+                    {currentPlan.code === "gold" ? "View plans" : "Upgrade plan"}
+                  </Link>
+                </Button>
+              </div>
+            </div>
           </div>
+        </section>
+
+        <div className="text-sm text-slate-600">
+          {user ? `Signed in as ${user.email}` : "Sign in to see your downloads and compare plans."}
         </div>
 
         {error && (
@@ -208,7 +186,7 @@ const DownloadsPage = () => {
                 <p className="text-lg font-medium">No downloads yet.</p>
                 <p className="mt-2 text-sm text-gray-600">
                   Watch a video and click the Download button to save it here.
-                  Upgrade to premium to download unlimited videos.
+                  Upgrade your plan to remove the daily download limit.
                 </p>
               </div>
             ) : (
@@ -217,9 +195,7 @@ const DownloadsPage = () => {
                   key={`${item.videoid?._id || item.title}-${item.downloadedAt}`}
                   className="rounded-lg border border-gray-200 p-5 shadow-sm"
                 >
-                  
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    
+                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                       <Link href={`/watch/${item.videoid?._id || ""}`}>
                         <h2 className="text-xl font-semibold text-slate-900 hover:text-slate-700">
@@ -227,15 +203,18 @@ const DownloadsPage = () => {
                         </h2>
                       </Link>
                       <p className="mt-1 text-sm text-gray-600">
-                        Downloaded on{" "}
-                        {new Date(item.downloadedAt).toLocaleString()}
+                        Downloaded on {new Date(item.downloadedAt).toLocaleString()}
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Link href={`/watch/${item.videoid?._id || ""}`}>
                         <Button variant="secondary">Open video</Button>
                       </Link>
-                      <a href={item.url} download className="inline-block">
+                      <a
+                        href={getVideoSrc(item.url)}
+                        download
+                        className="inline-block"
+                      >
                         <Button variant="secondary">Download again</Button>
                       </a>
                     </div>
