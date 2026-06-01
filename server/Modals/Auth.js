@@ -7,6 +7,15 @@ const userschema = mongoose.Schema({
   image: { type: String },
   joinedon: { type: Date, default: Date.now },
   isPremium: { type: Boolean, default: false },
+  planCode: {
+    type: String,
+    enum: ["free", "bronze", "silver", "gold"],
+    default: "free",
+  },
+  planName: { type: String, default: "Free" },
+  watchLimitMinutes: { type: Number, default: 5 },
+  planPricePaise: { type: Number, default: 0 },
+  planActivatedAt: { type: Date, default: null },
   downloadCountToday: { type: Number, default: 0 },
   lastDownloadDate: { type: Date },
   downloads: [
