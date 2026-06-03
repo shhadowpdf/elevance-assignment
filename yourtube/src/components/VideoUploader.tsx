@@ -11,7 +11,7 @@ import axiosInstance from "@/lib/axiosinstance";
 import { useUser } from "@/lib/AuthContext";
 
 const VideoUploader = ({ channelId, channelName }: any) => {
-  const { user } = useUser();
+  const { user, isLightTheme } = useUser();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -121,23 +121,35 @@ const VideoUploader = ({ channelId, channelName }: any) => {
   };
 
   return (
-    <div className="bg-gray-50 rounded-lg p-6">
-      <h2 className="text-xl font-semibold mb-4">Upload a video</h2>
+    <div
+      className={`rounded-lg p-6 ${
+        isLightTheme
+          ? "bg-white border border-slate-200 text-slate-950"
+          : "bg-slate-950 border border-slate-800 text-white"
+      }`}
+    >
+      <h2 className={`text-xl font-semibold mb-4 ${isLightTheme ? "text-slate-950" : "text-white"}`}>
+        Upload a video
+      </h2>
 
       <div className="space-y-4">
         {!videoFile ? (
           <div
-            className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:bg-gray-100 transition-colors"
+            className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+              isLightTheme
+                ? "border-gray-300 bg-white hover:bg-gray-100"
+                : "border-slate-700 bg-slate-900 hover:bg-slate-800"
+            }`}
             onClick={() => fileInputRef.current?.click()}
           >
-            <Upload className="w-12 h-12 mx-auto text-gray-400 mb-2" />
-            <p className="text-lg font-medium">
+            <Upload className={`w-12 h-12 mx-auto mb-2 ${isLightTheme ? "text-gray-400" : "text-slate-400"}`} />
+            <p className={`text-lg font-medium ${isLightTheme ? "text-slate-950" : "text-white"}`}>
               Drag and drop video files to upload
             </p>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className={`text-sm mt-1 ${isLightTheme ? "text-slate-600" : "text-slate-300"}`}>
               or click to select files
             </p>
-            <p className="text-xs text-gray-400 mt-4">
+            <p className={`text-xs mt-4 ${isLightTheme ? "text-slate-400" : "text-slate-500"}`}>
               MP4, WebM, MOV or AVI • Up to 100MB
             </p>
             <input
@@ -151,13 +163,19 @@ const VideoUploader = ({ channelId, channelName }: any) => {
         ) : (
           <div className="space-y-4">
             <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+              <div
+                className={`flex items-center gap-3 p-3 rounded-lg border ${
+                  isLightTheme ? "bg-white border-slate-200" : "bg-slate-900 border-slate-700"
+                }`}
+              >
                 <div className="bg-blue-100 p-2 rounded-md">
                   <FileVideo className="w-6 h-6 text-blue-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{videoFile.name}</p>
-                  <p className="text-sm text-gray-500">
+                  <p className={`font-medium truncate ${isLightTheme ? "text-slate-950" : "text-white"}`}>
+                    {videoFile.name}
+                  </p>
+                  <p className={`text-sm ${isLightTheme ? "text-slate-600" : "text-slate-400"}`}>
                     {(videoFile.size / (1024 * 1024)).toFixed(2)} MB
                   </p>
                 </div>
@@ -174,15 +192,15 @@ const VideoUploader = ({ channelId, channelName }: any) => {
               </div>
 
               {videoPreviewUrl && (
-                <div className="bg-white rounded-lg border overflow-hidden">
+                <div className={`rounded-lg border overflow-hidden ${isLightTheme ? "bg-white border-slate-200" : "bg-slate-900 border-slate-700"}`}>
                   <video
                     src={videoPreviewUrl}
                     controls
                     className="w-full max-h-72 bg-black"
                   />
                   <div className="p-3 space-y-2">
-                    <p className="text-sm font-medium">Preview</p>
-                    <p className="text-xs text-gray-500">
+                    <p className={`text-sm font-medium ${isLightTheme ? "text-slate-950" : "text-white"}`}>Preview</p>
+                    <p className={`text-xs ${isLightTheme ? "text-slate-600" : "text-slate-400"}`}>
                       Your selected video will be uploaded to the backend and
                       shown here while uploading.
                     </p>
@@ -214,13 +232,13 @@ const VideoUploader = ({ channelId, channelName }: any) => {
               </div>
             </div>
 
-            <div className="flex justify-between gap-3 items-center">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               {!user && (
                 <p className="text-sm text-red-600">
                   Sign in to upload videos and enforce plan-based upload limits.
                 </p>
               )}
-              <div className="flex justify-end gap-3">
+              <div className="flex flex-wrap justify-end gap-3">
                 {!uploadComplete && (
                   <>
                     <Button onClick={cancelUpload} disabled={uploadComplete}>

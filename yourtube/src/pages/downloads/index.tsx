@@ -10,16 +10,16 @@ import {
   getEffectivePlanCode,
   getPlanConfig,
 } from "@/lib/plans";
+import { toast } from "sonner";
 
 const DownloadsPage = () => {
-  const { user } = useUser();
+  const { user, isLightTheme } = useUser();
   const [downloads, setDownloads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [planCode, setPlanCode] = useState(getEffectivePlanCode(user));
   const [planName, setPlanName] = useState(getPlanConfig(planCode).name);
   const [watchLimitMinutes, setWatchLimitMinutes] = useState<number | null>(
-    getPlanConfig(planCode).watchLimitMinutes
+    getPlanConfig(planCode).watchLimitMinutes,
   );
   const [downloadCountToday, setDownloadCountToday] = useState(0);
   const [lastDownloadDate, setLastDownloadDate] = useState<string | null>(null);
@@ -31,9 +31,10 @@ const DownloadsPage = () => {
     setPlanCode(effectivePlanCode);
     setPlanName(user?.planName || effectivePlan.name);
     setWatchLimitMinutes(
-      typeof user?.watchLimitMinutes === "number" || user?.watchLimitMinutes === null
+      typeof user?.watchLimitMinutes === "number" ||
+        user?.watchLimitMinutes === null
         ? user.watchLimitMinutes
-        : effectivePlan.watchLimitMinutes
+        : effectivePlan.watchLimitMinutes,
     );
   }, [user]);
 
@@ -46,7 +47,6 @@ const DownloadsPage = () => {
 
     const fetchDownloads = async () => {
       setLoading(true);
-      setError(null);
 
       try {
         const res = await axiosInstance.get(`/user/downloads/${user._id}`);
@@ -60,17 +60,17 @@ const DownloadsPage = () => {
           typeof res.data.watchLimitMinutes === "number" ||
             res.data.watchLimitMinutes === null
             ? res.data.watchLimitMinutes
-            : responsePlan.watchLimitMinutes
+            : responsePlan.watchLimitMinutes,
         );
         setDownloadCountToday(res.data.downloadCountToday || 0);
         setLastDownloadDate(
           res.data.lastDownloadDate
             ? new Date(res.data.lastDownloadDate).toLocaleDateString()
-            : null
+            : null,
         );
       } catch (fetchError: any) {
-        setError(
-          fetchError?.response?.data?.message || "Unable to fetch downloads."
+        toast.error(
+          fetchError?.response?.data?.message || "Unable to fetch downloads.",
         );
       } finally {
         setLoading(false);
@@ -91,55 +91,118 @@ const DownloadsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white px-4 py-8">
+    <div
+      className={`min-h-screen ${isLightTheme ? "bg-white" : "bg-gray-900"} px-4 py-8`}
+    >
       <div className="mx-auto max-w-6xl space-y-6">
-        <section className="overflow-hidden rounded-[28px] border border-orange-200 bg-[linear-gradient(135deg,#fff7ed_0%,#ffffff_55%,#fffaf2_100%)] p-6 shadow-[0_18px_45px_rgba(194,65,12,0.08)]">
+        <section
+          className={`overflow-hidden rounded-[28px] p-6 shadow-[0_18px_45px_rgba(194,65,12,0.08)] ${
+            isLightTheme
+              ? "border border-orange-200 bg-[linear-gradient(135deg,#fff7ed_0%,#ffffff_55%,#fffaf2_100%)]"
+              : "border border-gray-800 bg-gradient-to-br from-gray-900 via-gray-950 to-black"
+          }`}
+        >
           <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
             <div className="max-w-2xl">
-              <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
+              <h1
+                className={`text-3xl font-semibold tracking-tight ${
+                  isLightTheme ? "text-slate-950" : "text-white"
+                }`}
+              >
                 Downloads
               </h1>
-              <p className="mt-3 text-sm leading-6 text-slate-600">
+
+              <p
+                className={`mt-3 text-sm leading-6 ${
+                  isLightTheme ? "text-slate-600" : "text-gray-400"
+                }`}
+              >
                 Keep your saved videos close at hand. Every paid plan includes
-                unlimited downloads, while Free stays limited to one download per day.
+                unlimited downloads, while Free stays limited to one download
+                per day.
               </p>
             </div>
 
-            <div className="w-full max-w-sm rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
+            <div
+              className={`w-full max-w-sm rounded-[24px] p-5 shadow-sm ${
+                isLightTheme
+                  ? "border border-slate-200 bg-white"
+                  : "border border-gray-800 bg-gray-900"
+              }`}
+            >
+              <div
+                className={`text-xs font-semibold uppercase tracking-[0.28em] ${
+                  isLightTheme ? "text-slate-500" : "text-gray-400"
+                }`}
+              >
                 Current access
               </div>
+
               <div className="mt-3 flex items-baseline justify-between gap-4">
                 <div>
-                  <div className="text-2xl font-semibold text-slate-950">
+                  <div
+                    className={`text-2xl font-semibold ${
+                      isLightTheme ? "text-slate-950" : "text-white"
+                    }`}
+                  >
                     {planName}
                   </div>
-                  <p className="mt-1 text-sm text-slate-600">
+
+                  <p
+                    className={`mt-1 text-sm ${
+                      isLightTheme ? "text-slate-600" : "text-gray-400"
+                    }`}
+                  >
                     Watch limit: {formatWatchLimit(watchLimitMinutes)}
                   </p>
                 </div>
-                <div className="rounded-full bg-slate-950 px-3 py-1 text-xs font-medium text-white">
+
+                <div
+                  className={`rounded-full px-3 py-1 text-xs font-medium ${
+                    isLightTheme
+                      ? "bg-slate-950 text-white"
+                      : "bg-white text-black"
+                  }`}
+                >
                   {formatPrice(currentPlan.pricePaise)}
                 </div>
               </div>
 
-              <div className="mt-4 space-y-2 text-sm text-slate-600">
+              <div
+                className={`mt-4 space-y-2 text-sm ${
+                  isLightTheme ? "text-slate-600" : "text-gray-400"
+                }`}
+              >
                 <div className="flex items-center justify-between">
                   <span>Downloads today</span>
-                  <span className="font-medium text-slate-950">
+                  <span
+                    className={`font-medium ${
+                      isLightTheme ? "text-slate-950" : "text-white"
+                    }`}
+                  >
                     {downloadCountToday}
                   </span>
                 </div>
+
                 <div className="flex items-center justify-between">
                   <span>Download access</span>
-                  <span className="font-medium text-slate-950">
+                  <span
+                    className={`font-medium ${
+                      isLightTheme ? "text-slate-950" : "text-white"
+                    }`}
+                  >
                     {currentPlan.rank > 0 ? "Unlimited" : "1 per day"}
                   </span>
                 </div>
+
                 {lastDownloadDate && (
                   <div className="flex items-center justify-between">
                     <span>Last used</span>
-                    <span className="font-medium text-slate-950">
+                    <span
+                      className={`font-medium ${
+                        isLightTheme ? "text-slate-950" : "text-white"
+                      }`}
+                    >
                       {lastDownloadDate}
                     </span>
                   </div>
@@ -149,10 +212,16 @@ const DownloadsPage = () => {
               <div className="mt-5">
                 <Button
                   asChild
-                  className="w-full rounded-full bg-slate-950 hover:bg-slate-800"
+                  className={`w-full rounded-full ${
+                    isLightTheme
+                      ? "bg-slate-950 text-white hover:bg-slate-800"
+                      : "bg-white text-black hover:bg-gray-200"
+                  }`}
                 >
                   <Link href="/subscriptions">
-                    {currentPlan.code === "gold" ? "View plans" : "Upgrade plan"}
+                    {currentPlan.code === "gold"
+                      ? "View plans"
+                      : "Upgrade plan"}
                   </Link>
                 </Button>
               </div>
@@ -160,15 +229,13 @@ const DownloadsPage = () => {
           </div>
         </section>
 
-        <div className="text-sm text-slate-600">
-          {user ? `Signed in as ${user.email}` : "Sign in to see your downloads and compare plans."}
+        <div
+          className={`text-sm ${isLightTheme ? "text-gray-600" : "text-gray-400"}`}
+        >
+          {user
+            ? `Signed in as ${user.email}`
+            : "Sign in to see your downloads and compare plans."}
         </div>
-
-        {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            {error}
-          </div>
-        )}
 
         {!user ? (
           <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center">
@@ -182,9 +249,13 @@ const DownloadsPage = () => {
         ) : (
           <div className="grid gap-4">
             {downloads.length === 0 ? (
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-center">
+              <div
+                className={`rounded-lg border ${isLightTheme ? "border-gray-200 bg-gray-50" : "border-gray-600 bg-gray-800"} p-6 text-center`}
+              >
                 <p className="text-lg font-medium">No downloads yet.</p>
-                <p className="mt-2 text-sm text-gray-600">
+                <p
+                  className={`mt-2 text-sm ${isLightTheme ? "text-gray-600" : "text-white"}`}
+                >
                   Watch a video and click the Download button to save it here.
                   Upgrade your plan to remove the daily download limit.
                 </p>
@@ -198,12 +269,15 @@ const DownloadsPage = () => {
                   <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                       <Link href={`/watch/${item.videoid?._id || ""}`}>
-                        <h2 className="text-xl font-semibold text-slate-900 hover:text-slate-700">
+                        <h2
+                          className={`text-xl font-semibold ${isLightTheme ? "text-slate-900 hover:text-slate-700" : "text-white hover:text-gray-300"}`}
+                        >
                           {item.title || item.videoid?.videotitle}
                         </h2>
                       </Link>
                       <p className="mt-1 text-sm text-gray-600">
-                        Downloaded on {new Date(item.downloadedAt).toLocaleString()}
+                        Downloaded on{" "}
+                        {new Date(item.downloadedAt).toLocaleString()}
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">

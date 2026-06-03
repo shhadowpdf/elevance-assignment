@@ -21,7 +21,7 @@ const VideoInfo = ({ video }: any) => {
   const [isLiked, setIsLiked] = useState(false);
   const [isDisliked, setIsDisliked] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
-  const { user } = useUser();
+  const { user, isLightTheme } = useUser();
   const [isWatchLater, setIsWatchLater] = useState(false);
 
   // const user: any = {
@@ -154,29 +154,29 @@ const VideoInfo = ({ video }: any) => {
 
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div className="flex items-center gap-4 flex-1 min-w-0">
-          <Avatar className="w-10 h-10">
+          <Avatar className={`w-10 h-10 ${isLightTheme ? "bg-gray-800" : "bg-white text-black"} flex-shrink-0`}>
             <AvatarFallback>{video.videochanel?.[0] || "U"}</AvatarFallback>
           </Avatar>
           <div className="min-w-0">
             <h3 className="font-medium text-sm sm:text-base truncate">{video.videochanel}</h3>
-            <p className="text-sm text-gray-600">1.2M subscribers</p>
+            <p className={`text-sm ${isLightTheme ? "text-gray-600" : "text-gray-400"}`}>1.2M subscribers</p>
           </div>
-          <Button className="ml-auto md:ml-4">Subscribe</Button>
+          <Button className={`ml-auto md:ml-4 ${isLightTheme ? "" : "bg-gray-600 hover:bg-gray-500"}`}>Subscribe</Button>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center bg-gray-100 rounded-full flex-shrink-0">
+          <div className={`flex items-center ${isLightTheme ? "bg-gray-100" : "bg-gray-600"} rounded-full flex-shrink-0`}>
             <Button
               variant="ghost"
               size="sm"
               className="rounded-l-full"
               onClick={handleLike}
             >
-              <ThumbsUp
-                className={`w-5 h-5 mr-2 ${isLiked ? "fill-black text-black" : ""}`}
+                <ThumbsUp
+                  className={`w-5 h-5 mr-2 ${isLiked ? isLightTheme ? "fill-black text-black" : "fill-white text-white" : ""}`}
               />
               {likes.toLocaleString()}
             </Button>
-            <div className="w-px h-6 bg-gray-300" />
+            <div className={`w-px h-6 ${isLightTheme ? "bg-gray-100" : "bg-gray-600"} bg-gray-300`} />
             <Button
               variant="ghost"
               size="sm"
@@ -184,7 +184,7 @@ const VideoInfo = ({ video }: any) => {
               onClick={handleDislike}
             >
               <ThumbsDown
-                className={`w-5 h-5 mr-2 ${isDisliked ? "fill-black text-black" : ""}`}
+                className={`w-5 h-5 mr-2 ${isDisliked ? isLightTheme ? "fill-black text-black" : "fill-white text-white" : ""}`}
               />
               {dislikes.toLocaleString()}
             </Button>
@@ -192,31 +192,31 @@ const VideoInfo = ({ video }: any) => {
           <Button
             variant="ghost"
             size="sm"
-            className={`bg-gray-100 rounded-full ${isWatchLater ? "text-primary" : ""}`}
+            className={`${isLightTheme ? "bg-gray-100" : "bg-gray-600"} rounded-full ${isWatchLater ? "" : ""}`}
             onClick={handleWatchLater}
           >
-            <Clock className="w-5 h-5 mr-2" />
+            <Clock className={`w-5 h-5 mr-2 `} />
             {isWatchLater ? "Saved" : "Watch Later"}
           </Button>
-          <Button variant="ghost" size="sm" className="bg-gray-100 rounded-full">
+          <Button variant="ghost" size="sm" className={`${isLightTheme ? "bg-gray-100" : "bg-gray-600"} rounded-full`}>
             <Share className="w-5 h-5 mr-2" />
             Share
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            className="bg-gray-100 rounded-full"
+            className={`${isLightTheme ? "bg-gray-100" : "bg-gray-600"} rounded-full`}
             onClick={handleDownload}
           >
             <Download className="w-5 h-5 mr-2" />
             Download
           </Button>
-          <Button variant="ghost" size="icon" className="bg-gray-100 rounded-full">
+          <Button variant="ghost" size="icon" className={`${isLightTheme ? "bg-gray-100" : "bg-gray-600"} rounded-full`}>
             <MoreHorizontal className="w-5 h-5" />
           </Button>
         </div>
       </div>
-      <div className="bg-gray-100 rounded-lg p-4">
+      <div className={`${isLightTheme ? "bg-gray-100" : "bg-gray-600"} rounded-lg p-4`}>
         <div className="flex gap-4 text-sm font-medium mb-2">
           <span>{video?.views ? video.views.toLocaleString() : "0"} views</span>
           <span>{formatDistanceToNow(new Date(video?.createdAt))} ago</span>

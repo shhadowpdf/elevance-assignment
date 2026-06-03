@@ -20,12 +20,12 @@ type Props = {
 };
 
 const Sidebar = ({ mobile = false, onClose }: Props) => {
-  const { user } = useUser();
+  const { user, isLightTheme } = useUser();
 
   const [isdialogeopen, setisdialogeopen] = useState(false);
   const rootClass = mobile
-    ? "w-64 bg-white border-r min-h-screen p-2"
-    : "hidden md:block w-64 bg-white border-r min-h-screen p-2";
+    ? `w-64 ${isLightTheme ? "bg-white text-gray-900" : "bg-gray-900 text-white"} border-r min-h-screen p-2`
+    : `hidden md:block w-64 ${isLightTheme ? "bg-white text-gray-900" : "bg-gray-900 text-white"} border-r min-h-screen p-2`;
 
   return (
     <aside className={rootClass}>
@@ -39,20 +39,20 @@ const Sidebar = ({ mobile = false, onClose }: Props) => {
       )}
       <nav className="space-y-1">
         <Link href="/">
-          <Button variant="ghost" className="w-full justify-start">
-            <Home className="w-5 h-5 mr-3" />
+          <Button variant="ghost" className={`w-full justify-start ${isLightTheme ? "text-gray-900 hover:bg-gray-200" : "text-white hover:text-white hover:bg-gray-700"}`}>
+            <Home className={`w-5 h-5 mr-3 ${isLightTheme ? "text-gray-900" : "text-white"}`} />
             Home
           </Button>
         </Link>
         <Link href="/explore">
-          <Button variant="ghost" className="w-full justify-start">
-            <Compass className="w-5 h-5 mr-3" />
+          <Button variant="ghost" className={`w-full justify-start ${isLightTheme ? "text-gray-900 hover:bg-gray-200" : "text-white hover:text-white hover:bg-gray-700"}`}>
+            <Compass className={`w-5 h-5 mr-3 ${isLightTheme ? "text-gray-900" : "text-white"}`} />
             Explore
           </Button>
         </Link>
         <Link href="/subscriptions">
-          <Button variant="ghost" className="w-full justify-start">
-            <PlaySquare className="w-5 h-5 mr-3" />
+          <Button variant="ghost" className={`w-full justify-start ${isLightTheme ? "text-gray-900 hover:bg-gray-200" : "text-white hover:text-white hover:bg-gray-700"}`}>
+            <PlaySquare className={`w-5 h-5 mr-3 ${isLightTheme ? "text-gray-900" : "text-white"}`} />
             Subscriptions
           </Button>
         </Link>
@@ -61,33 +61,33 @@ const Sidebar = ({ mobile = false, onClose }: Props) => {
           <>
             <div className="border-t pt-2 mt-2">
               <Link href="/history">
-                <Button variant="ghost" className="w-full justify-start">
-                  <History className="w-5 h-5 mr-3" />
+                <Button variant="ghost" className={`w-full justify-start ${isLightTheme ? "text-gray-900 hover:bg-gray-200" : "text-white hover:text-white hover:bg-gray-700  "}`}>
+                  <History className={`w-5 h-5 mr-3 ${isLightTheme ? "text-gray-900" : "text-white"}`} />
                   History
                 </Button>
               </Link>
               <Link href="/liked">
-                <Button variant="ghost" className="w-full justify-start">
-                  <ThumbsUp className="w-5 h-5 mr-3" />
+                <Button variant="ghost" className={`w-full justify-start ${isLightTheme ? "text-gray-900 hover:bg-gray-200" : "text-white hover:text-white hover:bg-gray-700"}`}  >
+                  <ThumbsUp className={`w-5 h-5 mr-3 ${isLightTheme ? "text-gray-900" : "text-white"}`} />
                   Liked videos
                 </Button>
               </Link>
               <Link href="/watch-later">
-                <Button variant="ghost" className="w-full justify-start">
-                  <Clock className="w-5 h-5 mr-3" />
+                <Button variant="ghost" className={`w-full justify-start ${isLightTheme ? "text-gray-900 hover:bg-gray-200" : "text-white hover:text-white hover:bg-gray-700"}`}>
+                  <Clock className={`w-5 h-5 mr-3 ${isLightTheme ? "text-gray-900" : "text-white"}`} />
                   Watch later
                 </Button>
               </Link>
               <Link href="/downloads">
-                <Button variant="ghost" className="w-full justify-start">
-                  <Download className="w-5 h-5 mr-3" />
+                <Button variant="ghost" className={`w-full justify-start ${isLightTheme ? "text-gray-900 hover:bg-gray-200" : "text-white hover:text-white hover:bg-gray-700"}`}>
+                  <Download className={`w-5 h-5 mr-3 ${isLightTheme ? "text-gray-900" : "text-white"}`} />
                   Downloads
                 </Button>
               </Link>
               {user?.channelname ? (
                 <Link href={`/channel/${user.id}`}>
-                  <Button variant="ghost" className="w-full justify-start">
-                    <User className="w-5 h-5 mr-3" />
+                  <Button variant="ghost" className={`w-full justify-start ${isLightTheme ? "text-gray-900 hover:bg-gray-200" : "text-white hover:text-white hover:bg-gray-700"}`}>
+                    <User className={`w-5 h-5 mr-3 ${isLightTheme ? "text-gray-900" : "text-white"}`} />
                     Your channel
                   </Button>
                 </Link>

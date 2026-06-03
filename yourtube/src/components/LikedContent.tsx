@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
 import { MoreVertical, X, ThumbsUp, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,7 @@ import { getVideoSrc } from "@/lib/utils";
 export default function LikedVideosContent() {
   const [likedVideos, setLikedVideos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useUser();
+  const { user, isLightTheme } = useUser();
 
   useEffect(() => {
     if (user) {
@@ -55,11 +54,13 @@ export default function LikedVideosContent() {
   if (!user) {
     return (
       <div className="text-center py-12">
-        <ThumbsUp className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-        <h2 className="text-xl font-semibold mb-2">
+        <ThumbsUp className={`w-16 h-16 mx-auto mb-4 ${isLightTheme ? "text-gray-400" : "text-gray-600"}`} />
+        <h2 className={`text-xl font-semibold mb-2 ${isLightTheme ? "text-slate-950" : "text-white"}`}>
           Keep track of videos you like
         </h2>
-        <p className="text-gray-600">Sign in to see your liked videos.</p>
+        <p className={`${isLightTheme ? "text-gray-600" : "text-slate-300"}`}>
+          Sign in to see your liked videos.
+        </p>
       </div>
     );
   }
@@ -71,19 +72,20 @@ export default function LikedVideosContent() {
   if (likedVideos.length === 0) {
     return (
       <div className="text-center py-12">
-        <ThumbsUp className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-        <h2 className="text-xl font-semibold mb-2">No liked videos yet</h2>
-        <p className="text-gray-600">Videos you like will appear here.</p>
+        <ThumbsUp className={`w-16 h-16 mx-auto mb-4 ${isLightTheme ? "text-gray-400" : "text-gray-600"}`} />
+        <h2 className={`text-xl font-semibold mb-2 ${isLightTheme ? "text-slate-950" : "text-white"}`}>No liked videos yet</h2>
+        <p className={`${isLightTheme ? "text-gray-600" : "text-slate-300"}`}>
+          Videos you like will appear here.
+        </p>
       </div>
     );
   }
-  const videos = "/video/vdo.mp4";
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <p className="text-sm text-gray-600">{likedVideos.length} videos</p>
-        <Button className="flex items-center gap-2">
-          <Play className="w-4 h-4" />
+        <p className={`text-sm ${isLightTheme ? "text-gray-600" : "text-white"}`}>{likedVideos.length} videos</p>
+        <Button className={`flex items-center gap-2 ${isLightTheme ? "bg-black" : "bg-gray-600"}`}>
+          <Play className={`w-4 h-4 `} />
           Play all
         </Button>
       </div>
@@ -106,14 +108,14 @@ export default function LikedVideosContent() {
                   {item.videoid.videotitle}
                 </h3>
               </Link>
-              <p className="text-sm text-gray-600">
+              <p className={`text-sm ${isLightTheme ? "text-gray-600" : "text-slate-300"}`}>
                 {item.videoid.videochanel}
               </p>
-              <p className="text-sm text-gray-600">
+              <p className={`text-sm ${isLightTheme ? "text-gray-600" : "text-slate-300"}`}>
                 {item.videoid.views.toLocaleString()} views •{" "}
                 {formatDistanceToNow(new Date(item.videoid.createdAt))} ago
               </p>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className={`text-xs mt-1 ${isLightTheme ? "text-gray-500" : "text-slate-400"}`}>
                 Liked {formatDistanceToNow(new Date(item.createdAt))} ago
               </p>
             </div>
@@ -123,7 +125,7 @@ export default function LikedVideosContent() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="opacity-0 group-hover:opacity-100"
+                  className={`opacity-100 ${isLightTheme ? "bg-gray-100" : "bg-gray-600"}`}
                 >
                   <MoreVertical className="w-4 h-4" />
                 </Button>

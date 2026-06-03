@@ -21,8 +21,12 @@ interface HeaderProps {
   onSidebarClose?: () => void;
 }
 
-const Header = ({ isSidebarOpen, onSidebarToggle, onSidebarClose }: HeaderProps) => {
-  const { user, logout, handlegooglesignin } = useUser();
+const Header = ({
+  isSidebarOpen,
+  onSidebarToggle,
+  onSidebarClose,
+}: HeaderProps) => {
+  const { user, logout, handlegooglesignin, isLightTheme } = useUser();
   const [searchQuery, setSearchQuery] = useState("");
   const [isdialogeopen, setisdialogeopen] = useState(false);
   const router = useRouter();
@@ -38,10 +42,23 @@ const Header = ({ isSidebarOpen, onSidebarToggle, onSidebarClose }: HeaderProps)
     }
   };
   return (
-    <header className="flex items-center justify-between px-4 py-2 bg-white border-b">
+    <header
+      className={`flex items-center justify-between px-4 py-2 ${isLightTheme ? "bg-white" : "bg-gray-900"} border-b`}
+    >
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={onSidebarToggle}>
-          <Menu className="w-6 h-6" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className={
+            isLightTheme
+              ? "text-gray-900 hover:bg-gray-200"
+              : "text-white hover:bg-gray-700"
+          }
+          onClick={onSidebarToggle}
+        >
+          <Menu
+            className={`w-6 h-6 ${isLightTheme ? "text-gray-900" : "text-white"}`}
+          />
         </Button>
         <Link href="/" className="flex items-center gap-1">
           <div className="bg-red-600 p-1 rounded">
@@ -49,7 +66,11 @@ const Header = ({ isSidebarOpen, onSidebarToggle, onSidebarClose }: HeaderProps)
               <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
             </svg>
           </div>
-          <span className="text-xl font-medium">YourTube</span>
+          <span
+            className={`text-xl font-medium ${isLightTheme ? "text-gray-900" : "text-white"}`}
+          >
+            YourTube
+          </span>
           <span className="text-xs text-gray-400 ml-1">IN</span>
         </Link>
       </div>
@@ -62,19 +83,29 @@ const Header = ({ isSidebarOpen, onSidebarToggle, onSidebarClose }: HeaderProps)
             type="search"
             placeholder="Search"
             value={searchQuery}
-            onKeyPress={handleKeypress}
+            onKeyDown={handleKeypress}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="rounded-l-full border-r-0 focus-visible:ring-0"
+            className={`rounded-l-full border-r-0 focus-visible:ring-0 ${isLightTheme ? "text-gray-900 bg-white" : "text-white bg-gray-800"} `}
           />
           <Button
             type="submit"
-            className="rounded-r-full px-6 bg-gray-50 hover:bg-gray-100 text-gray-600 border border-l-0"
+            className={`rounded-r-full px-6 bg-gray-50 hover:bg-gray-100 text-gray-600 border border-l-0 `}
           >
-            <Search className="w-5 h-5" />
+            <Search className={`w-5 h-5`} />
           </Button>
         </div>
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <Mic className="w-5 h-5" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`rounded-full ${
+            isLightTheme
+              ? "text-gray-900 hover:bg-gray-200"
+              : "text-white hover:bg-gray-700"
+          }`}
+        >
+          <Mic
+            className={`w-6 h-6 ${isLightTheme ? "text-gray-900" : "text-white"}`}
+          />
         </Button>
       </form>
       <div className="md:hidden">
@@ -83,10 +114,11 @@ const Header = ({ isSidebarOpen, onSidebarToggle, onSidebarClose }: HeaderProps)
           size="icon"
           onClick={() => {
             const q = window.prompt("Search query");
-            if (q && q.trim()) router.push(`/search?q=${encodeURIComponent(q.trim())}`);
+            if (q && q.trim())
+              router.push(`/search?q=${encodeURIComponent(q.trim())}`);
           }}
         >
-          <Search className="w-5 h-5" />
+          <Search className={`w-5 h-5 ${isLightTheme ? "text-gray-900" : "text-white"}`} />
         </Button>
       </div>
       <div className="flex items-center gap-2">
@@ -99,12 +131,13 @@ const Header = ({ isSidebarOpen, onSidebarToggle, onSidebarClose }: HeaderProps)
                 const roomId = Math.random().toString(36).substring(2, 11);
                 router.push(`/call/${roomId}`);
               }}
+              className={`rounded-full ${isLightTheme ? "text-gray-900 hover:bg-gray-200" : "text-white hover:bg-gray-700"}`}
               title="Start a call"
             >
-              <VideoIcon className="w-6 h-6" />
+              <VideoIcon className={`w-6 h-6 ${isLightTheme ? "text-gray-900" : "text-white"}`} />
             </Button>
-            <Button variant="ghost" size="icon">
-              <Bell className="w-6 h-6" />
+            <Button variant="ghost" size="icon" className={`rounded-full ${isLightTheme ? "text-gray-900 hover:bg-gray-200" : "text-white hover:bg-gray-700"}`} title="Notifications">
+              <Bell className={`w-6 h-6 ${isLightTheme ? "text-gray-900" : "text-white"}`} />
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -118,7 +151,7 @@ const Header = ({ isSidebarOpen, onSidebarToggle, onSidebarClose }: HeaderProps)
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuContent className={`w-56 ${isLightTheme ? "bg-white text-gray-900" : "bg-gray-800 text-white"}`} align="end" forceMount>
                 {user?.channelname ? (
                   <DropdownMenuItem asChild>
                     <Link href={`/channel/${user?._id}`}>Your channel</Link>
@@ -158,10 +191,10 @@ const Header = ({ isSidebarOpen, onSidebarToggle, onSidebarClose }: HeaderProps)
         ) : (
           <>
             <Button
-              className="flex items-center gap-2"
+              className={`flex items-center gap-2 ${isLightTheme ? "text-gray-900 hover:bg-gray-200" : "text-white hover:bg-gray-700"} rounded-full`}
               onClick={handlegooglesignin}
             >
-              <User className="w-4 h-4" />
+              <User className={`w-4 h-4 ${isLightTheme ? "text-gray-900" : "text-white"}`} />
               Sign in
             </Button>
           </>

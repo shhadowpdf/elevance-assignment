@@ -19,7 +19,7 @@ import { useUser } from "@/lib/AuthContext";
 export default function WatchLaterContent() {
   const [watchLater, setWatchLater] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useUser();
+  const { user, isLightTheme } = useUser();
 
   useEffect(() => {
     if (user) {
@@ -56,9 +56,9 @@ export default function WatchLaterContent() {
   if (!user) {
     return (
       <div className="text-center py-12">
-        <Clock className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+        <Clock className={`w-16 h-16 mx-auto ${isLightTheme ? 'text-gray-400' : 'text-gray-600'} mb-4`} />
         <h2 className="text-xl font-semibold mb-2">Save videos for later</h2>
-        <p className="text-gray-600">
+        <p className={`text-${isLightTheme ? 'text-gray-600' : 'text-white'}`}>
           Sign in to access your Watch later playlist.
         </p>
       </div>
@@ -68,20 +68,21 @@ export default function WatchLaterContent() {
   if (watchLater.length === 0) {
     return (
       <div className="text-center py-12">
-        <Clock className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+        <Clock className={`w-16 h-16 mx-auto ${isLightTheme ? 'text-gray-600' : 'text-white'} mb-4`} />
         <h2 className="text-xl font-semibold mb-2">No videos saved</h2>
-        <p className="text-gray-600">
+        <p className={`text-${isLightTheme ? 'text-gray-600' : 'text-white'}`}>
           Videos you save for later will appear here.
         </p>
       </div>
     );
   }
-  const videos = "/video/vdo.mp4";
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <p className="text-sm text-gray-600">{watchLater.length} videos</p>
-        <Button className="flex items-center gap-2">
+        <p className={`text-sm ${isLightTheme ? 'text-gray-600' : 'text-white'}`}>
+          {watchLater.length} videos
+        </p>
+        <Button className={`flex items-center gap-2 ${isLightTheme ? 'bg-black' : 'bg-gray-600'}`}>
           <Play className="w-4 h-4" />
           Play all
         </Button>
@@ -122,7 +123,7 @@ export default function WatchLaterContent() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="opacity-0 group-hover:opacity-100"
+                  className={` ${isLightTheme ? 'bg-gray-100' : 'bg-gray-600'}`}
                 >
                   <MoreVertical className="w-4 h-4" />
                 </Button>

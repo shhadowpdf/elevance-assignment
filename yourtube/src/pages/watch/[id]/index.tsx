@@ -21,6 +21,7 @@ import { formatWatchLimit, getEffectivePlanCode, getPlanConfig } from "@/lib/pla
 const WatchPage = () => {
   const router = useRouter();
   const { id } = router.query;
+  const {isLightTheme} = useUser();
   const { user, handlegooglesignin } = useUser();
   const [videos, setVideos] = useState<any[]>([]);
   const [video, setVideo] = useState<any>(null);
@@ -173,9 +174,9 @@ const WatchPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className={`min-h-screen ${isLightTheme ? "bg-white" : "bg-gray-900"}`}>
       {gestureMessage && (
-        <div className="fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-lg bg-black px-6 py-3 text-sm font-medium text-white shadow-lg">
+        <div className={`fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-lg ${isLightTheme ? "bg-black text-white" : "bg-gray-800 text-white"} px-6 py-3 text-sm font-medium  shadow-lg`}>
           {gestureMessage}
         </div>
       )}
@@ -184,15 +185,15 @@ const WatchPage = () => {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="space-y-4 lg:col-span-2">
             {!user ? (
-              <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+              <div className={`rounded-2xl border ${isLightTheme ? "border-red-200 bg-red-50 text-red-800" : "border-red-200 bg-red-900 text-white"} p-4 text-sm `}>
                 Sign in to stream this video through the protected playback service.
               </div>
             ) : watchTokenError ? (
-              <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+              <div className={`rounded-2xl border  ${isLightTheme ? "bg-red-50 border-red-200 text-red-800" : "bg-red-900 text-white"} p-4 text-sm `}>
                 {watchTokenError}
               </div>
             ) : !watchToken ? (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+              <div className={`rounded-2xl border border-slate-200 ${isLightTheme ? "bg-slate-50" : "bg-slate-800"} p-4 text-sm text-slate-600`}>
                 Preparing protected playback...
               </div>
             ) : null}
@@ -230,7 +231,7 @@ const WatchPage = () => {
               </p>
               <Button
                 asChild
-                className="mt-4 w-full rounded-full bg-slate-950 hover:bg-slate-800"
+                className="mt-4 w-full rounded-full bg-blue-700 hover:bg-blue-900"
               >
                 <Link href="/subscriptions">Compare plans</Link>
               </Button>
@@ -281,18 +282,18 @@ const WatchPage = () => {
 
           <DialogFooter>
             {user ? (
-              <Button asChild className="bg-slate-950 hover:bg-slate-800">
+              <Button asChild className="bg-blue-700 hover:bg-blue-900">
                 <Link href="/subscriptions">See upgrade plans</Link>
               </Button>
             ) : (
               <Button
-                className="bg-slate-950 hover:bg-slate-800"
+                className="bg-blue-700 hover:bg-blue-900"
                 onClick={handlegooglesignin}
               >
                 Sign in to upgrade
               </Button>
             )}
-            <Button variant="outline" onClick={() => setShowUpgradeModal(false)}>
+            <Button variant="outline" className="cursor-pointer" onClick={() => setShowUpgradeModal(false)}>
               Maybe later
             </Button>
           </DialogFooter>

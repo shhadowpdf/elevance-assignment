@@ -9,6 +9,7 @@ const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [isLightTheme, setIsLightTheme] = useState(false);
 
   const login = (userdata) => {
     const normalizedUser = userdata
@@ -90,7 +91,7 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   return (
-    <UserContext.Provider value={{ user, login, logout, handlegooglesignin }}>
+    <UserContext.Provider value={{ user, login, logout, handlegooglesignin, isLightTheme }}>
       {children}
     </UserContext.Provider>
   );
