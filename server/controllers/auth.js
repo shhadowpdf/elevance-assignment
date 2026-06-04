@@ -14,6 +14,7 @@ import {
 } from "../utils/plans.js";
 import {
   getEmailConfigStatus,
+  sendOtpEmail,
   sendPlanUpgradeInvoiceEmail,
   sendTestPlanInvoiceEmail,
   verifyEmailTransport,
@@ -24,6 +25,8 @@ const razorpayInstance = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID || "",
   key_secret: process.env.RAZORPAY_KEY_SECRET || "",
 });
+
+const otpStore = {};
 
 const buildInvoiceNumber = (purchaseDoc) => {
   const date = new Date();
@@ -61,6 +64,62 @@ export const login = async (req, res) => {
     console.error("Login error:", error);
     return res.status(500).json({ message: "Something went wrong" });
   }
+};
+
+export const sendOtp = async (req, res) => {
+  const { method, target, user } = req.body;
+
+  otpStore[target] = {
+    otp: crypto.randomInt(100000, 999999).toString(),
+    expiresAt: Date.now() + 5 * 60 * 1000
+  }
+
+  console.log(`Generated OTP for ${target} via ${method}:`, otpStore[target].otp);
+  if(method === "email"){
+    try {
+      await sendOtpEmail(user, otpStore[target].otp, 5);
+      return res.status(200).json({
+    message:`OTP sent successfully`
+  })
+    } catch (error) {
+      console.error(`Error sending OTP email to ${target}:`, error);
+    }
+  }else{
+    console.log(`Mobile OTP for ${target}:`, otpStore[target].otp);
+  }
+  
+}
+
+export const verifyOtp = async (req, res) => {
+  const { otp, target } = req.body;
+
+  const record = otpStore[target];
+
+  if (!record) {
+    return res.status(400).json({
+      message: "OTP not found",
+    });
+  }
+
+  if (Date.now() > record.expiresAt) {
+    delete otpStore[target];
+
+    return res.status(400).json({
+      message: "OTP expired",
+    });
+  }
+
+  if (record.otp !== otp) {
+    return res.status(400).json({
+      message: "Invalid OTP",
+    });
+  }
+
+  delete otpStore[target];
+
+  return res.status(200).json({
+    message: "OTP verified",
+  });
 };
 
 export const updateprofile = async (req, res) => {

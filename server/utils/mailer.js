@@ -160,6 +160,74 @@ const buildInvoiceEmailHtml = ({
   </div>
 `;
 
+const buildOtpEmailHtml = ({
+  customerName,
+  otpCode,
+  expiryMinutes = 5,
+}) => `
+  <div style="font-family: Arial, sans-serif; background: #f7f4ec; padding: 32px;">
+    <div style="max-width: 640px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; border: 1px solid #e5dcc8;">
+      <div style="background: linear-gradient(135deg, #111827, #9a3412); color: #ffffff; padding: 28px 32px;">
+        <div style="font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.78;">YourTube Verification</div>
+        <h1 style="margin: 12px 0 8px; font-size: 28px; line-height: 1.2;">One-time passcode</h1>
+        <p style="margin: 0; font-size: 15px; opacity: 0.88;">Use this code to complete your sign in. It expires in ${escapeHtml(String(expiryMinutes))} minutes.</p>
+      </div>
+      <div style="padding: 28px 32px; color: #1f2937;">
+        <p style="margin-top: 0; font-size: 16px;">Hi ${escapeHtml(customerName || "there")},</p>
+        <p style="font-size: 15px; line-height: 1.7;">
+          Enter the following OTP on YourTube to verify your login attempt.
+        </p>
+        <div style="margin: 24px 0; text-align: center;">
+          <div style="display: inline-block; padding: 24px 32px; border-radius: 18px; background: #f8fafc; border: 1px dashed #d1d5db; font-size: 34px; letter-spacing: 12px; font-weight: 700;">
+            ${escapeHtml(otpCode)}
+          </div>
+        </div>
+        <p style="margin: 0; font-size: 14px; color: #6b7280;">
+          This OTP is valid for ${escapeHtml(String(expiryMinutes))} minutes. If you did not request it, you can safely ignore this message.
+        </p>
+      </div>
+    </div>
+  </div>
+`;
+
+export const sendOtpEmail = async (
+  user,
+  otpCode,
+  expiryMinutes = 5,
+) => {
+  try {
+    const transporter = getTransporter();
+
+    if (!transporter) {
+      return {
+        sent: false,
+        error:
+          "SMTP is not configured. Add SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM_NAME, and SMTP_FROM_EMAIL.",
+      };
+    }
+
+    const { fromName, fromEmail } = getMailFrom();
+
+    await transporter.sendMail({
+      from: `"${fromName}" <${fromEmail}>`,
+      to: user.email,
+      subject: "YourTube OTP code",
+      html: buildOtpEmailHtml({
+        customerName: user.name,
+        otpCode,
+        expiryMinutes,
+      }),
+    });
+
+    return { sent: true, error: null };
+  } catch (error) {
+    return {
+      sent: false,
+      error: error instanceof Error ? error.message : "Unable to send OTP email.",
+    };
+  }
+};
+
 export const sendPlanUpgradeInvoiceEmail = async ({
   user,
   previousPlan,

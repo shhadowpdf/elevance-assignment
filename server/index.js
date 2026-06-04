@@ -14,9 +14,6 @@ import commentroutes from "./routes/comment.js";
 import { getEmailConfigStatus } from "./utils/mailer.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, ".env") });
-console.log('Loaded env from:', path.resolve(__dirname, '.env'));
-console.log('BLOB_READ_WRITE_TOKEN present:', Boolean(process.env.BLOB_READ_WRITE_TOKEN));
-console.log("SMTP config status:", getEmailConfigStatus());
 const app = express();
 app.use(
   cors({
@@ -28,6 +25,10 @@ app.use(express.urlencoded({ limit: "30mb", extended: true }));
 app.get("/", (req, res) => {
   return res.status(200).json({ message: "Connected" });
 });
+// app.post("/state", (req, res)=> {
+//   console.log(req.body);
+//   return res.status(200).json({ ok: true });
+// })
 app.use("/user", userroutes);
 app.use("/video", videoroutes);
 app.use("/like", likeroutes);

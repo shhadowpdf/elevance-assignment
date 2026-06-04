@@ -1,42 +1,79 @@
 import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { createContext } from "react";
 import { provider, auth } from "./firebase";
 import axiosInstance from "./axiosinstance";
 import { useEffect, useContext } from "react";
+import OtpPromptDialog from "../components/OtpPromptDialog";
 import axios from "axios";
-import MobileNumberDialog from "../components/MobileNumberDialog";
 
 const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLightTheme, setIsLightTheme] = useState(false);
-  const [isMobileDialogOpen, setIsMobileDialogOpen] = useState(false);
-  const [mobileDialogError, setMobileDialogError] = useState("");
-  const [isSavingMobile, setIsSavingMobile] = useState(false);
+  const [otpDialogOpen, setOtpDialogOpen] = useState(false);
+  const [otpMethod, setOtpMethod] = useState("email");
+  const [otpTarget, setOtpTarget] = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [pendingAuthUser, setPendingAuthUser] = useState(null);
   const SOUTH_STATES = ["Tamil Nadu", "Kerala", "Karnataka", "Andhra Pradesh", "Telangana"];
 
-  const login = async (userdata) => {
-    const currentHour = new Date(Date.now() + (5.5 * 60 * 60 * 1000)).getUTCHours();
-    const residentialState = await getResidentialState();
-    const isSouthUser = SOUTH_STATES.includes(residentialState);
-    const shouldUseLightTheme = isSouthUser && (currentHour >= 10 && currentHour < 12);
+  const maskMobile = (mobile) => {
+    if (!mobile) return "your mobile";
+    return mobile.replace(/.(?=.{2})/g, "*");
+  };
 
+  const maskEmail = (email) => {
+    if (!email) return "your email";
+    const [local, domain] = email.split("@");
+    const maskedLocal = local.length > 2 ? `${local[0]}${"*".repeat(local.length - 2)}${local.slice(-1)}` : local;
+    return `${maskedLocal}@${domain}`;
+  };
+
+  const decideOtpMethod = (userdata) => {
+    if (SOUTH_STATES.includes(userdata.residentialState)) {
+      return "email";
+    }
+    return "mobile";
+  };
+
+  const formatOtpTarget = (method, userdata) => {
+    if (method === "mobile") {
+      return maskMobile(userdata.mobile);
+    }
+    return maskEmail(userdata.email);
+  };
+  const finalizeLogin = async (method, user) => {
+    try {
+      const res = await axiosInstance.post("/user/send-otp", {
+        method,
+        target: method === "mobile" ? user.mobile : user.email,
+        user
+      })
+    } catch (error) {
+      console.error("Error sending OTP:", error);
+    }
+  }
+  const login = async (userdata) => {
+    const state = await getResidentialState();
     const normalizedUser = userdata
       ? {
         ...userdata,
         id: userdata.id || userdata._id,
-        residentialState: residentialState || userdata?.residentialState || "Unknown",
+        residentialState: state || userdata.residentialState
       }
       : null;
 
-    setUser(normalizedUser);
+    if (!normalizedUser) return;
 
-    if (normalizedUser) {
-      localStorage.setItem("user", JSON.stringify(normalizedUser));
-    }
-    setIsLightTheme(shouldUseLightTheme);
+    const method = decideOtpMethod(normalizedUser);
+    setOtpMethod(method);
+    setOtpTarget(formatOtpTarget(method, normalizedUser));
+    setPendingAuthUser(normalizedUser);
+    setOtpDialogOpen(true);
+    await finalizeLogin(method, normalizedUser);
   };
 
   const logout = async () => {
@@ -57,77 +94,135 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  const saveMobileNumber = async (mobile) => {
-    if (!user?.id) {
-      setMobileDialogError("Unable to save mobile number right now.");
+  const verifyOtp = async (otp) => {
+    if (!pendingAuthUser) return;
+
+    if (!otp || otp.length < 6) {
+      setOtpError("Please enter a valid OTP.");
       return;
     }
 
+    setIsVerifyingOtp(true);
+    setOtpError("");
+
     try {
-      setIsSavingMobile(true);
-      setMobileDialogError("");
-      const response = await axiosInstance.patch(`/user/update/${user.id}`, { mobile });
-      await login(response.data);
-      setIsMobileDialogOpen(false);
+      const res = await axiosInstance.post("/user/verify-otp", {
+        otp, target: otpMethod === "mobile" ? pendingAuthUser.mobile : pendingAuthUser.email
+      });
+
+      if (res.status === 200) {
+        const verifiedUser = pendingAuthUser;
+
+        const southUser = SOUTH_STATES.includes(verifiedUser.residentialState);
+
+        const currentHour = new Date(
+          Date.now() + 5.5 * 60 * 60 * 1000
+        ).getUTCHours();
+
+        setIsLightTheme(
+          southUser &&
+          currentHour >= 10 &&
+          currentHour < 12
+        );
+
+        setUser(verifiedUser);
+
+        localStorage.setItem(
+          "user",
+          JSON.stringify(verifiedUser)
+        );
+
+        setOtpDialogOpen(false);
+        setPendingAuthUser(null);
+      }
     } catch (error) {
-      console.error("Error saving mobile number:", error);
-      setMobileDialogError("Failed to save mobile number. Please try again.");
+      setOtpError(
+        error.response?.data?.message ||
+        "OTP verification failed. Please try again."
+      );
     } finally {
-      setIsSavingMobile(false);
+      setIsVerifyingOtp(false);
     }
   };
 
-  const handleMobileDialogOpenChange = (nextOpen) => {
-    if (!nextOpen && !user?.mobile) {
-      setMobileDialogError("Please enter your mobile number to continue.");
-      return;
+  const resendOtp = async () => {
+    if (!pendingAuthUser) return;
+    setOtpError("");
+    try {
+      await finalizeLogin(otpMethod, pendingAuthUser);
+    } catch (error) {
+      setOtpError("Failed to resend OTP. Please try again.");
     }
-    setIsMobileDialogOpen(nextOpen);
   };
 
   const getResidentialState = async () => {
     try {
-      const response = await axios.get("/api/location/state");
-      // await axiosInstance.post("/state", { state: response.data.state });
-      return response.data.state;
-
+      const response = await axios.get(`/api/location/state`);
+      if (response.status === 200) {
+        return response.data.state;
+      }
     } catch (error) {
       console.error("Error fetching residential state:", error);
     }
-  }
+  };
+
 
   useEffect(() => {
     if (typeof window === "undefined") {
       return;
     }
 
-    const storedUser = localStorage.getItem("user");
+    const restoreUser = async () => {
+      const storedUser = localStorage.getItem("user");
 
-    if (!storedUser) {
-      return;
-    }
+      if (!storedUser) {
+        return;
+      }
 
-    try {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
+      try {
+        const parsedUser = JSON.parse(storedUser);
 
-      const currentHour = new Date(Date.now() + (5.5 * 60 * 60 * 1000)).getUTCHours();
-      const isSouthUser = SOUTH_STATES.includes(parsedUser?.residentialState);
-      setIsLightTheme(
-        isSouthUser &&
-        currentHour >= 10 &&
-        currentHour < 12
-      );
-    } catch (error) {
-      console.error("Unable to read stored user:", error);
-      localStorage.removeItem("user");
-    }
+        // Get latest residential state
+        const userWithState = await getResidentialState(parsedUser);
+
+        setUser(userWithState);
+
+        const southUser = SOUTH_STATES.includes(
+          userWithState?.residentialState
+        );
+
+        const currentHour = new Date(
+          Date.now() + 5.5 * 60 * 60 * 1000
+        ).getUTCHours();
+
+        setIsLightTheme(
+          southUser &&
+          currentHour >= 10 &&
+          currentHour < 12
+        );
+      } catch (error) {
+        console.error("Unable to read stored user:", error);
+        localStorage.removeItem("user");
+      }
+    };
+
+    restoreUser();
   }, []);
 
   useEffect(() => {
     const unsubcribe = onAuthStateChanged(auth, async (firebaseuser) => {
       if (firebaseuser) {
         try {
+          // Check if user is already stored in localStorage
+          const storedUser = localStorage.getItem("user");
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+            // If the stored user's email matches Firebase user's email, don't show OTP again
+            if (parsedUser.email === firebaseuser.email) {
+              return;
+            }
+          }
+
           const payload = {
             email: firebaseuser.email,
             name: firebaseuser.displayName,
@@ -135,9 +230,6 @@ export const UserProvider = ({ children }) => {
           };
           const response = await axiosInstance.post("/user/login", payload);
           await login(response.data.result);
-          if (response.status === 201 && !response.data.result?.mobile) {
-            setIsMobileDialogOpen(true);
-          }
         } catch (error) {
           console.error(error);
           logout();
@@ -150,13 +242,16 @@ export const UserProvider = ({ children }) => {
   return (
     <UserContext.Provider value={{ user, login, logout, handlegooglesignin, isLightTheme }}>
       {children}
-      <MobileNumberDialog
-        open={isMobileDialogOpen}
-        onOpenChange={handleMobileDialogOpenChange}
-        onSubmit={saveMobileNumber}
-        loading={isSavingMobile}
-        error={mobileDialogError}
-        mandatory={!user?.mobile}
+      <OtpPromptDialog
+        open={otpDialogOpen}
+        onOpenChange={setOtpDialogOpen}
+        onSubmit={verifyOtp}
+        onResend={resendOtp}
+        loading={isVerifyingOtp}
+        error={otpError}
+        method={otpMethod}
+        target={otpTarget}
+        mandatory={true}
       />
     </UserContext.Provider>
   );
