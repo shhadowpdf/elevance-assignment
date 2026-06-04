@@ -18,13 +18,17 @@ export const UserProvider = ({ children }) => {
   const SOUTH_STATES = ["Tamil Nadu", "Kerala", "Karnataka", "Andhra Pradesh", "Telangana"];
 
   const login = async (userdata) => {
+    const currentHour = new Date(Date.now() + (5.5 * 60 * 60 * 1000)).getUTCHours();
     const residentialState = await getResidentialState();
+    const isSouthUser = SOUTH_STATES.includes(residentialState);
+    const shouldUseLightTheme = isSouthUser && (currentHour >= 10 && currentHour < 12);
+
     const normalizedUser = userdata
       ? {
-          ...userdata,
-          id: userdata.id || userdata._id,
-          residentialState: residentialState || userdata?.residentialState || "Unknown",
-        }
+        ...userdata,
+        id: userdata.id || userdata._id,
+        residentialState: residentialState || userdata?.residentialState || "Unknown",
+      }
       : null;
 
     setUser(normalizedUser);
@@ -32,6 +36,7 @@ export const UserProvider = ({ children }) => {
     if (normalizedUser) {
       localStorage.setItem("user", JSON.stringify(normalizedUser));
     }
+    setIsLightTheme(shouldUseLightTheme);
   };
 
   const logout = async () => {
@@ -62,7 +67,7 @@ export const UserProvider = ({ children }) => {
       setIsSavingMobile(true);
       setMobileDialogError("");
       const response = await axiosInstance.patch(`/user/update/${user.id}`, { mobile });
-      login(response.data);
+      await login(response.data);
       setIsMobileDialogOpen(false);
     } catch (error) {
       console.error("Error saving mobile number:", error);
@@ -81,12 +86,12 @@ export const UserProvider = ({ children }) => {
   };
 
   const getResidentialState = async () => {
-    try{
+    try {
       const response = await axios.get("/api/location/state");
       // await axiosInstance.post("/state", { state: response.data.state });
       return response.data.state;
 
-    }catch(error){
+    } catch (error) {
       console.error("Error fetching residential state:", error);
     }
   }
@@ -103,7 +108,16 @@ export const UserProvider = ({ children }) => {
     }
 
     try {
-      setUser(JSON.parse(storedUser));
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+
+      const currentHour = new Date(Date.now() + (5.5 * 60 * 60 * 1000)).getUTCHours();
+      const isSouthUser = SOUTH_STATES.includes(parsedUser?.residentialState);
+      setIsLightTheme(
+        isSouthUser &&
+        currentHour >= 10 &&
+        currentHour < 12
+      );
     } catch (error) {
       console.error("Unable to read stored user:", error);
       localStorage.removeItem("user");
@@ -120,7 +134,7 @@ export const UserProvider = ({ children }) => {
             image: firebaseuser.photoURL || "https://github.com/shadcn.png",
           };
           const response = await axiosInstance.post("/user/login", payload);
-          login(response.data.result);
+          await login(response.data.result);
           if (response.status === 201 && !response.data.result?.mobile) {
             setIsMobileDialogOpen(true);
           }

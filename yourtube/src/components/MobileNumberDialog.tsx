@@ -52,7 +52,7 @@ const MobileNumberDialog = ({
     await onSubmit(trimmed);
   };
 
-  const preventDismiss = (event: React.SyntheticEvent) => {
+  const preventDismiss = (event: any) => {
     if (mandatory) {
       event.preventDefault();
     }
