@@ -4,6 +4,7 @@ const userschema = mongoose.Schema({
   name: { type: String },
   channelname: { type: String },
   description: { type: String },
+  mobile: { type: String },
   image: { type: String },
   joinedon: { type: Date, default: Date.now },
   isPremium: { type: Boolean, default: false },
