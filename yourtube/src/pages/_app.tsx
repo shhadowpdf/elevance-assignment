@@ -18,7 +18,12 @@ export default function App({ Component, pageProps }: AppProps) {
   );
 }
 
-function AppLayout({ Component, pageProps }: AppProps) {
+type AppLayoutProps = {
+  Component: AppProps["Component"];
+  pageProps: AppProps["pageProps"];
+};
+
+function AppLayout({ Component, pageProps }: AppLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const { isLightTheme } = useUser();
