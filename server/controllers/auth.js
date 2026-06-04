@@ -86,6 +86,11 @@ export const sendOtp = async (req, res) => {
     }
   }else{
     console.log(`Mobile OTP for ${target}:`, otpStore[target].otp);
+    
+    return res.status(200).json({
+      message:`OTP generated successfully for mobile `,
+      otp: otpStore[target].otp
+    })
   }
   
 }

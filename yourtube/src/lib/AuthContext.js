@@ -52,6 +52,7 @@ export const UserProvider = ({ children }) => {
         target: method === "mobile" ? user.mobile : user.email,
         user
       })
+      console.log(res.data)
     } catch (error) {
       console.error("Error sending OTP:", error);
     }
