@@ -8,7 +8,10 @@ import axiosInstance from "@/lib/axiosinstance";
 interface Comment {
   _id: string;
   videoid: string;
-  userid: string;
+  userid: {
+    _id: string;
+    image?: string;
+  };
   commentbody: string;
   usercommented: string;
   commentedon: string;
@@ -21,26 +24,8 @@ const Comments = ({ videoId }: any) => {
   const [editText, setEditText] = useState("");
   const { user } = useUser();
   const [loading, setLoading] = useState(true);
-  const fetchedComments = [
-    {
-      _id: "1",
-      videoid: videoId,
-      userid: "1",
-      commentbody: "Great video! Really enjoyed watching this.",
-      usercommented: "John Doe",
-      commentedon: new Date(Date.now() - 3600000).toISOString(),
-    },
-    {
-      _id: "2",
-      videoid: videoId,
-      userid: "2",
-      commentbody: "Thanks for sharing this amazing content!",
-      usercommented: "Jane Smith",
-      commentedon: new Date(Date.now() - 7200000).toISOString(),
-    },
-  ];
   useEffect(() => {
-    loadComments();
+      loadComments();
   }, [videoId]);
 
   const loadComments = async () => {
@@ -166,7 +151,7 @@ const Comments = ({ videoId }: any) => {
           comments.map((comment) => (
             <div key={comment._id} className="flex flex-col sm:flex-row gap-4">
                 <Avatar className="w-10 h-10">
-                <AvatarImage src="/placeholder.svg?height=40&width=40" />
+                <AvatarImage src={comment.userid.image} />
                 <AvatarFallback>{comment.usercommented[0]}</AvatarFallback>
               </Avatar>
               <div className="flex-1">
@@ -206,7 +191,7 @@ const Comments = ({ videoId }: any) => {
                 ) : (
                   <>
                     <p className="text-sm">{comment.commentbody}</p>
-                    {comment.userid === user?._id && (
+                    {comment.userid._id === user?._id && (
                       <div className="flex gap-2 mt-2 text-sm text-gray-500">
                         <button onClick={() => handleEdit(comment)}>
                           Edit

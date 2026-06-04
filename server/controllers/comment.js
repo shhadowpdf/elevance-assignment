@@ -15,7 +15,7 @@ export const postcomment = async (req, res) => {
 export const getallcomment = async (req, res) => {
   const { videoid } = req.params;
   try {
-    const commentvideo = await comment.find({ videoid: videoid });
+    const commentvideo = await comment.find({ videoid }).populate("userid", "image");
     return res.status(200).json(commentvideo);
   } catch (error) {
     console.error(" error:", error);

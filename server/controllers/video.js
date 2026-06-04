@@ -143,9 +143,15 @@ export const streamVideo = async (req, res) => {
       upstreamHeaders.Range = req.headers.range;
     }
 
+    const abortController = new AbortController();
+    req.on("close", () => {
+      abortController.abort();
+    });
+
     const upstreamResponse = await fetch(targetVideo.filepath, {
       method: "GET",
       headers: upstreamHeaders,
+      signal: abortController.signal,
     });
 
     if (!upstreamResponse.ok) {
@@ -188,10 +194,33 @@ export const streamVideo = async (req, res) => {
     }
 
     const nodeReadable = Readable.fromWeb(upstreamBody);
-    pipeline(nodeReadable, res, (streamError) => {
-      if (streamError) {
-        console.error("Video proxy pipeline error:", streamError);
+
+    const handleStreamError = (streamError) => {
+      if (
+        !streamError ||
+        streamError.code === "ERR_STREAM_PREMATURE_CLOSE" ||
+        streamError.code === "ERR_STREAM_DESTROYED" ||
+        abortController.signal.aborted
+      ) {
+        return;
       }
+      console.error("Video proxy pipeline error:", streamError);
+    };
+
+    req.on("close", () => {
+      abortController.abort();
+      nodeReadable.destroy();
+    });
+
+    res.on("close", () => {
+      abortController.abort();
+      nodeReadable.destroy();
+    });
+
+    nodeReadable.on("error", handleStreamError);
+
+    pipeline(nodeReadable, res, (streamError) => {
+      handleStreamError(streamError);
     });
   } catch (error) {
     console.error("streamVideo error:", error);

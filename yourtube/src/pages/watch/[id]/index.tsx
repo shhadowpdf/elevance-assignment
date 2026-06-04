@@ -21,12 +21,12 @@ import { formatWatchLimit, getEffectivePlanCode, getPlanConfig } from "@/lib/pla
 const WatchPage = () => {
   const router = useRouter();
   const { id } = router.query;
+  const videoId = Array.isArray(id) ? id[0] : id || "";
   const {isLightTheme} = useUser();
   const { user, handlegooglesignin } = useUser();
   const [videos, setVideos] = useState<any[]>([]);
   const [video, setVideo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [showComments, setShowComments] = useState(false);
   const [gestureMessage, setGestureMessage] = useState("");
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const commentsRef = useRef<HTMLDivElement>(null);
@@ -141,15 +141,11 @@ const WatchPage = () => {
   };
 
   const handleOpenComments = () => {
-    const nextValue = !showComments;
-    setShowComments(nextValue);
-    flashGestureMessage(nextValue ? "Comments opened" : "Comments hidden");
+    flashGestureMessage("Comments opened");
 
-    if (nextValue) {
-      setTimeout(() => {
-        commentsRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 300);
-    }
+    setTimeout(() => {
+      commentsRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 300);
   };
 
   const handleWatchLimitReached = () => {
@@ -210,11 +206,9 @@ const WatchPage = () => {
               onWatchLimitReached={handleWatchLimitReached}
             />
             <VideoInfo video={video} />
-            {showComments && (
-              <div ref={commentsRef}>
-                <Comments videoId={id} />
-              </div>
-            )}
+            <div ref={commentsRef}>
+              <Comments videoId={videoId} />
+            </div>
           </div>
 
           <div className="space-y-4">
