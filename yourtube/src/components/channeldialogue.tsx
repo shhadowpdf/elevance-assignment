@@ -15,7 +15,7 @@ import axiosInstance from "@/lib/axiosinstance";
 import { useUser } from "@/lib/AuthContext";
 
 const Channeldialogue = ({ isopen, onclose, channeldata, mode }: any) => {
-  const { user, login } = useUser();
+  const { user, updateUser } = useUser();
   const router = useRouter();
   const [formData, setFormData] = useState({
     name: "",
@@ -34,7 +34,7 @@ const Channeldialogue = ({ isopen, onclose, channeldata, mode }: any) => {
         description: "",
       });
     }
-  }, [channeldata]);
+  }, [channeldata, mode, user]);
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -43,6 +43,7 @@ const Channeldialogue = ({ isopen, onclose, channeldata, mode }: any) => {
   };
   const handlesubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setisSubmitting(true);
     const payload = {
       channelname: formData.name,
       description: formData.description,
@@ -51,13 +52,14 @@ const Channeldialogue = ({ isopen, onclose, channeldata, mode }: any) => {
       `/user/update/${user._id}`,
       payload
     );
-    login(response?.data);
+    updateUser(response?.data);
     router.push(`/channel/${user?._id}`);
     setFormData({
       name: "",
       description: "",
     });
     onclose();
+    setisSubmitting(false);
   };
   return (
     <Dialog open={isopen} onOpenChange={onclose}>

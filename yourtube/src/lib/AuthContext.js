@@ -77,6 +77,22 @@ export const UserProvider = ({ children }) => {
     await finalizeLogin(method, normalizedUser);
   };
 
+  const updateUser = (userdata) => {
+    if (!userdata) return;
+
+    const normalizedUser = {
+      ...userdata,
+      id: userdata.id || userdata._id,
+      residentialState: userdata.residentialState || user?.residentialState,
+    };
+
+    setUser(normalizedUser);
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem("user", JSON.stringify(normalizedUser));
+    }
+  };
+
   const logout = async () => {
     setUser(null);
     localStorage.removeItem("user");
@@ -183,8 +199,12 @@ export const UserProvider = ({ children }) => {
       try {
         const parsedUser = JSON.parse(storedUser);
 
-        // Get latest residential state
-        const userWithState = await getResidentialState(parsedUser);
+        const residentialState = await getResidentialState();
+        const userWithState = {
+          ...parsedUser,
+          residentialState:
+            parsedUser.residentialState ?? residentialState,
+        };
 
         setUser(userWithState);
 
@@ -241,7 +261,7 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   return (
-    <UserContext.Provider value={{ user, login, logout, handlegooglesignin, isLightTheme }}>
+    <UserContext.Provider value={{ user, login, logout, handlegooglesignin, isLightTheme, updateUser }}>
       {children}
       <OtpPromptDialog
         open={otpDialogOpen}

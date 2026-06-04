@@ -44,7 +44,7 @@ const loadRazorpayScript = () =>
 
 const SubscriptionsPage = () => {
   const router = useRouter();
-  const { user, login, handlegooglesignin, isLightTheme } = useUser();
+  const { user, login, updateUser, handlegooglesignin, isLightTheme } = useUser();
   const [paymentLoading, setPaymentLoading] = useState<PlanCode | null>(null);
 
   const currentPlanCode = getEffectivePlanCode(user);
@@ -70,6 +70,8 @@ const SubscriptionsPage = () => {
   );
 
   const handleUpgrade = async (targetPlanCode: PlanCode) => {
+    const resetPaymentLoading = () => setPaymentLoading(null);
+
     if (!user?._id) {
       toast.error("Sign in to upgrade your plan.");
       await handlegooglesignin();
@@ -90,7 +92,7 @@ const SubscriptionsPage = () => {
 
       if (!razorpayKey) {
         toast.error("Razorpay is not configured for the frontend.");
-        setPaymentLoading(null);
+        resetPaymentLoading();
         return;
       }
 
@@ -124,30 +126,24 @@ const SubscriptionsPage = () => {
               }
             );
 
-            login(verifyResponse.data.user);
-            setPaymentLoading(null);
-
-            if (verifyResponse.data.emailSent) {
-              toast.success(
-                `${targetPlan.name} activated. Your invoice email has been sent.`
-              );
-            } else {
-              toast.success(
-                `${targetPlan.name} activated. We could not send the invoice email right now.`
-              );
-            }
-
+            updateUser(verifyResponse.data.user);
             router.replace(router.asPath);
           } catch (verifyError: any) {
-            setPaymentLoading(null);
             toast.error(
               verifyError?.response?.data?.message ||
                 "Payment verification failed."
             );
+          } finally {
+            resetPaymentLoading();
           }
         },
         modal: {
-          ondismiss: () => setPaymentLoading(null),
+          ondismiss: () => {
+            resetPaymentLoading();
+            toast.error(
+              "Payment was cancelled or declined. You can try again."
+            );
+          },
         },
       };
 
@@ -160,7 +156,7 @@ const SubscriptionsPage = () => {
       const razorpay = new RazorpayCtor(razorpayOptions);
       razorpay.open();
     } catch (error: any) {
-      setPaymentLoading(null);
+      resetPaymentLoading();
       toast.error(
         error?.response?.data?.message ||
           "Unable to initiate your upgrade right now."

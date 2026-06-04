@@ -23,7 +23,7 @@ const purchaseSchema = mongoose.Schema(
     receipt: { type: String, required: true },
     razorpayOrderId: { type: String, required: true, unique: true },
     razorpayPaymentId: { type: String, default: null },
-    invoiceNumber: { type: String, default: null, unique: true, sparse: true },
+    invoiceNumber: { type: String, unique: true, sparse: true },
     status: {
       type: String,
       enum: ["pending", "paid", "failed"],

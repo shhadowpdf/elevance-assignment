@@ -6,6 +6,7 @@ import { useUser } from "@/lib/AuthContext";
 const ChannelHeader = ({ channel, user }: any) => {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const { isLightTheme } = useUser();
+  const channelName = channel?.channelname ?? channel?.name;
 
   return (
     <div className="w-full">
@@ -19,7 +20,7 @@ const ChannelHeader = ({ channel, user }: any) => {
         <div className="flex flex-col md:flex-row gap-6 items-start">
           <Avatar className="w-20 h-20 md:w-32 md:h-32">
             <AvatarFallback className={`text-2xl ${isLightTheme ? "bg-slate-200 text-slate-950" : "bg-white text-black"}`}>
-              {channel?.channelname[0]}
+              {channelName?.[0] ?? "U"}
             </AvatarFallback>
           </Avatar>
 
@@ -29,14 +30,16 @@ const ChannelHeader = ({ channel, user }: any) => {
                 isLightTheme ? "text-slate-950" : "text-white"
               }`}
             >
-              {channel?.channelname}
+              {channelName ?? "Unknown Channel"}
             </h1>
             <div
               className={`flex flex-wrap gap-4 text-sm ${
                 isLightTheme ? "text-slate-600" : "text-slate-300"
               }`}
             >
-              <span>@{channel?.channelname.toLowerCase().replace(/\s+/g, "")}</span>
+              <span>
+                @{channelName != null ? channelName.toLowerCase().replace(/\s+/g, "") : "unknown"}
+              </span>
             </div>
             {channel?.description && (
               <p
