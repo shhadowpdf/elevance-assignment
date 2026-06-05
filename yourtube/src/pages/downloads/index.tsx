@@ -117,8 +117,8 @@ const DownloadsPage = () => {
                   isLightTheme ? "text-slate-600" : "text-gray-400"
                 }`}
               >
-                Keep your saved videos close at hand. Every paid plan includes
-                unlimited downloads, while Free stays limited to one download
+                Keep your saved videos close at hand. Only Gold users have
+                unlimited downloads; other plans are limited to one download
                 per day.
               </p>
             </div>
@@ -191,7 +191,7 @@ const DownloadsPage = () => {
                       isLightTheme ? "text-slate-950" : "text-white"
                     }`}
                   >
-                    {currentPlan.rank > 0 ? "Unlimited" : "1 per day"}
+                    {currentPlan.code === "gold" ? "Unlimited" : "1 per day"}
                   </span>
                 </div>
 

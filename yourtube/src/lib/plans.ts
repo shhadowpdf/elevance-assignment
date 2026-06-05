@@ -29,7 +29,7 @@ export const PLAN_CONFIG: Record<PlanCode, PlanConfig> = {
     pricePaise: 1000,
     watchLimitMinutes: 7,
     watchLimitSeconds: 7 * 60,
-    description: "Stretch every video to 7 minutes and unlock unlimited downloads.",
+    description: "Stretch every video to 7 minutes and download one video each day.",
     accent: "from-amber-300 via-orange-200 to-white",
   },
   silver: {
@@ -39,7 +39,7 @@ export const PLAN_CONFIG: Record<PlanCode, PlanConfig> = {
     pricePaise: 5000,
     watchLimitMinutes: 10,
     watchLimitSeconds: 10 * 60,
-    description: "Get 10-minute access per video with the same download freedom.",
+    description: "Get 10-minute access per video and download one video each day.",
     accent: "from-slate-300 via-slate-100 to-white",
   },
   gold: {
@@ -49,7 +49,7 @@ export const PLAN_CONFIG: Record<PlanCode, PlanConfig> = {
     pricePaise: 10000,
     watchLimitMinutes: null,
     watchLimitSeconds: null,
-    description: "Unlock unlimited watching time and all paid-plan perks.",
+    description: "Unlock unlimited watching time and unlimited downloads.",
     accent: "from-yellow-300 via-orange-200 to-white",
   },
 };

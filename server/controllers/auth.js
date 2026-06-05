@@ -243,11 +243,11 @@ export const createDownload = async (req, res) => {
       ? user.downloadCountToday || 0
       : 0;
 
-    // Free users can only download 1 video per day
-    if (!isPaidPlanCode(user.planCode) && currentCount >= 1) {
+    // Only Gold users have unlimited downloads; all other plans are limited to one download per day
+    if (user.planCode !== "gold" && currentCount >= 1) {
       return res.status(403).json({
         message:
-          "Free users can download only one video per day. Upgrade your plan for unlimited downloads.",
+          "Non-Gold users can download only one video per day. Upgrade to Gold for unlimited downloads.",
       });
     }
 

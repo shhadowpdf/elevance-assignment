@@ -198,8 +198,8 @@ const SubscriptionsPage = () => {
                     isLightTheme ? "text-slate-600" : "text-gray-300"
                   }`}
                 >
-                  Every paid plan is a lifetime unlock, includes unlimited downloads,
-                  and moves you up the ladder only when you want more room to watch.
+                  Gold is the only plan with unlimited downloads. Other tiers are lifetime unlocks
+                  with higher watch limits and one download allowed per day.
                 </p>
               </div>
             </div>
@@ -226,7 +226,7 @@ const SubscriptionsPage = () => {
                   isLightTheme ? "text-slate-600" : "text-slate-300"
                 }`}
               >
-                Downloads: {currentPlan.rank > 0 ? "Unlimited" : "1 per day"}
+                Downloads: {currentPlan.code === "gold" ? "Unlimited" : "1 per day"}
               </p>
               {!user && (
                 <div
@@ -309,7 +309,7 @@ const SubscriptionsPage = () => {
                       Downloads
                     </span>
                     <span className={isLightTheme ? "font-medium text-slate-950" : "font-medium text-white"}>
-                      {plan.rank > 0 ? "Unlimited" : "1/day"}
+                      {plan.code === "gold" ? "Unlimited" : "1/day"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">

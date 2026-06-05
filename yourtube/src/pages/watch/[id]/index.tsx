@@ -136,7 +136,7 @@ const WatchPage = () => {
   const handleCloseWebsite = () => {
     flashGestureMessage("Closing website");
     setTimeout(() => {
-      window.close();
+      router.push("/");
     }, 1000);
   };
 
