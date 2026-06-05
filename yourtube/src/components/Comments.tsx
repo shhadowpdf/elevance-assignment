@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, ChangeEvent } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
@@ -6,6 +6,7 @@ import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useUser } from "@/lib/AuthContext";
 import axiosInstance from "@/lib/axiosinstance";
+import axios from "axios";
 interface Comment {
   _id: string;
   videoid: string;
@@ -16,10 +17,11 @@ interface Comment {
   commentbody: string;
   usercommented: string;
   commentedon: string;
+  userResidentialState: string;
   likes?: string[];
   dislikes?: string[];
 }
-const Comments = ({ videoId }: any) => {
+const Comments: React.FC<{ videoId: string }> = ({ videoId }) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,15 +29,21 @@ const Comments = ({ videoId }: any) => {
   const [editText, setEditText] = useState("");
   const { user } = useUser();
   const [loading, setLoading] = useState(true);
+  const [selectedLanguages, setSelectedLanguages] = useState<Record<string, string>>({});
+  const [translations, setTranslations] = useState<Record<string, Record<string, string>>>({});
+  const [translating, setTranslating] = useState<Record<string, boolean>>({});
+
   useEffect(() => {
       loadComments();
   }, [videoId]);
+
+  
+  
 
   const loadComments = async () => {
     try {
       const res = await axiosInstance.get(`/comment/${videoId}`);
       setComments(res.data);
-      console.log(res.data)
     } catch (error) {
       console.log(error);
     } finally {
@@ -55,17 +63,20 @@ const Comments = ({ videoId }: any) => {
         userid: user._id,
         commentbody: newComment,
         usercommented: user.name,
+        userResidentialState: user.residentialState,
       });
       if (res.data.comment) {
+        const savedComment = res.data.comment;
         const newCommentObj: Comment = {
-          _id: Date.now().toString(),
-          videoid: videoId,
+          _id: savedComment._id,
+          videoid: savedComment.videoid,
           userid: { _id: user._id, image: user.image },
-          commentbody: newComment,
-          usercommented: user.name || "Anonymous",
-          commentedon: new Date().toISOString(),
-          likes: [],
-          dislikes: [],
+          commentbody: savedComment.commentbody,
+          usercommented: savedComment.usercommented || user.name || "Anonymous",
+          userResidentialState: savedComment.userResidentialState || user.residentialState || "Unknown",
+          commentedon: savedComment.commentedon || new Date().toISOString(),
+          likes: savedComment.likes || [],
+          dislikes: savedComment.dislikes || [],
         };
         setComments([newCommentObj, ...comments]);
       }
@@ -74,6 +85,32 @@ const Comments = ({ videoId }: any) => {
       console.error("Error adding comment:", error);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleTranslate = async (commentId: string, text: string, language: string) => {
+    setSelectedLanguages((prev) => ({ ...prev, [commentId]: language }));
+
+    if (!language) return;
+
+    const cached = translations[commentId]?.[language];
+    if (cached) return;
+
+    setTranslating((prev) => ({ ...prev, [commentId]: true }));
+    try {
+      const res = await axios.post("/api/translate/lang", {
+        text,
+        language,
+      });
+      const translatedText = res.data?.translatedText || "";
+      setTranslations((prev) => ({
+        ...prev,
+        [commentId]: { ...(prev[commentId] || {}), [language]: translatedText },
+      }));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setTranslating((prev) => ({ ...prev, [commentId]: false }));
     }
   };
 
@@ -177,7 +214,7 @@ const Comments = ({ videoId }: any) => {
             <Textarea
               placeholder="Add a comment..."
               value={newComment}
-              onChange={(e: any) => setNewComment(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setNewComment(e.target.value)}
               className="min-h-[80px] resize-none border-0 border-b-2 rounded-none focus-visible:ring-0"
             />
             <div className="flex gap-2 justify-end">
@@ -204,7 +241,7 @@ const Comments = ({ videoId }: any) => {
             No comments yet. Be the first to comment!
           </p>
         ) : (
-          comments.map((comment) => (
+          comments.map((comment, idx) => (
             <div key={comment._id} className="flex flex-col sm:flex-row gap-4">
                 <Avatar className="w-10 h-10">
                 <AvatarImage src={comment.userid.image} />
@@ -215,6 +252,9 @@ const Comments = ({ videoId }: any) => {
                   <span className="font-medium text-sm">
                     {comment.usercommented}
                   </span>
+                  <span className="text-xs text-gray-500">
+                    {comment.userResidentialState}
+                  </span>
                   <span className="text-xs text-gray-600">
                     {formatDistanceToNow(new Date(comment.commentedon))} ago
                   </span>
@@ -224,7 +264,7 @@ const Comments = ({ videoId }: any) => {
                   <div className="space-y-2">
                     <Textarea
                       value={editText}
-                      onChange={(e) => setEditText(e.target.value)}
+                      onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setEditText(e.target.value)}
                     />
                     <div className="flex gap-2 justify-end">
                       <Button
@@ -246,7 +286,25 @@ const Comments = ({ videoId }: any) => {
                   </div>
                 ) : (
                   <>
-                    <p className="text-sm">{comment.commentbody}</p>
+                    
+                    <p className="text-sm">
+                      {(() => {
+                        const lang = selectedLanguages[comment._id] || "";
+                        const isTrans = translating[comment._id] || false;
+                        const translated = translations[comment._id]?.[lang];
+                        if (!lang) return comment.commentbody;
+                        if (isTrans) return "Translating...";
+                        return translated || comment.commentbody;
+                      })()}
+                    </p>
+                    {(() => {
+                      const lang = selectedLanguages[comment._id] || "";
+                      const isTrans = translating[comment._id] || false;
+                      const translated = translations[comment._id]?.[lang];
+                      return lang && !isTrans && translated ? (
+                        <p className="text-xs text-blue-600">Translated</p>
+                      ) : null;
+                    })()}
                     <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
                       <Button
                         variant={comment.likes?.includes(user?._id || "") ? "default" : "ghost"}
@@ -272,7 +330,7 @@ const Comments = ({ videoId }: any) => {
                         />
                         <span className={comment.dislikes?.includes(user?._id || "") ? "text-red-600" : "text-gray-500"}>{comment.dislikes?.length || 0}</span>
                       </Button>
-                      {((comment.userid && (comment.userid as any)._id) || comment.userid) === user?._id && (
+                      {String(comment.userid?._id || comment.userid) === String(user?._id) && (
                         <div className="flex gap-2 ml-4 text-sm text-gray-500">
                           <button onClick={() => handleEdit(comment)}>
                             Edit
@@ -282,6 +340,28 @@ const Comments = ({ videoId }: any) => {
                           </button>
                         </div>
                       )}
+                      <select
+                        value={selectedLanguages[comment._id] || ""}
+                        onChange={(e) => {
+                          const lang = e.target.value;
+                          handleTranslate(comment._id, comment.commentbody, lang);
+                        }}
+                        className="ml-4 px-2 py-1 border rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Default</option>
+                        <option value="en">English</option>
+                        <option value="hi">Hindi</option>
+                        <option value="ta">Tamil</option>
+                        <option value="te">Telugu</option>
+                        <option value="kn">Kannada</option>
+                        <option value="ml">Malayalam</option>
+                        <option value="mr">Marathi</option>
+                        <option value="gu">Gujarati</option>
+                        <option value="bn">Bengali</option>
+                        <option value="pa">Punjabi</option>
+                        <option value="ur">Urdu</option>
+                        <option value="or">Odia</option>
+                      </select>
                     </div>
                   </>
                 )}

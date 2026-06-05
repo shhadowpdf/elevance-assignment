@@ -5,8 +5,8 @@ export const postcomment = async (req, res) => {
   const commentdata = req.body;
   const postcomment = new comment(commentdata);
   try {
-    await postcomment.save();
-    return res.status(200).json({ comment: true });
+    const savedComment = await postcomment.save();
+    return res.status(200).json({ comment: savedComment });
   } catch (error) {
     console.error(" error:", error);
     return res.status(500).json({ message: "Something went wrong" });
@@ -43,9 +43,14 @@ export const editcomment = async (req, res) => {
     return res.status(404).send("comment unavailable");
   }
   try {
-    const updatecomment = await comment.findByIdAndUpdate(_id, {
-      $set: { commentbody: commentbody },
-    });
+    const updatecomment = await comment.findByIdAndUpdate(
+      _id,
+      { $set: { commentbody: commentbody } },
+      { new: true }
+    );
+    if (!updatecomment) {
+      return res.status(404).send("comment unavailable");
+    }
     res.status(200).json(updatecomment);
   } catch (error) {
     console.error(" error:", error);

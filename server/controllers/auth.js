@@ -127,6 +127,27 @@ export const verifyOtp = async (req, res) => {
   });
 };
 
+export const getUserById = async (req, res) => {
+  const { id: _id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(_id)) {
+    return res.status(400).json({ message: "Invalid user identifier." });
+  }
+
+  try {
+    const user = await users.findById(_id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    await hydrateUserPlan(user);
+    return res.status(200).json({ result: serializeUser(user) });
+  } catch (error) {
+    console.error("getUserById error:", error);
+    return res.status(500).json({ message: "Something went wrong" });
+  }
+};
+
 export const updateprofile = async (req, res) => {
   const { id: _id } = req.params;
   const { channelname, description, mobile } = req.body;

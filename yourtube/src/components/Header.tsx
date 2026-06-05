@@ -191,7 +191,7 @@ const Header = ({
         ) : (
           <>
             <Button
-              className={`flex items-center gap-2 ${isLightTheme ? "text-gray-900 hover:bg-gray-200" : "text-white hover:bg-gray-700"} rounded-full`}
+              className={`flex items-center gap-2 ${isLightTheme ? "text-gray-900 bg-gray-200 hover:bg-gray-300" : "text-white bg-gray-700 hover:bg-gray-600"} rounded-full`}
               onClick={handlegooglesignin}
             >
               <User className={`w-4 h-4 ${isLightTheme ? "text-gray-900" : "text-white"}`} />

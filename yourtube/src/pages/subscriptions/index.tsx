@@ -210,7 +210,7 @@ const SubscriptionsPage = () => {
                   : "border-slate-200 bg-slate-950 text-white"
               }`}
             >
-              <div className="text-sm uppercase tracking-[0.28em] text-orange-200">
+              <div className="text-sm uppercase tracking-[0.28em] text-orange-500">
                 Current plan
               </div>
               <div className="mt-5 text-3xl font-semibold">{currentPlan.name}</div>
@@ -261,14 +261,14 @@ const SubscriptionsPage = () => {
                   <div>
                     <div
                       className={`text-xs font-semibold uppercase tracking-[0.3em] ${
-                        isLightTheme ? "text-slate-500" : "text-gray-400"
+                        isLightTheme ? "text-slate-500" : "text-slate-600 "
                       }`}
                     >
                       {plan.name}
                     </div>
                     <div
-                      className={`mt-3 text-3xl font-semibold ${
-                        isLightTheme ? "text-slate-950" : "text-white"
+                      className={`mt-3 text-3xl font-semibold text-slate-950 ${
+                        isLightTheme ? "" : "font-bold"
                       }`}
                     >
                       {plan.pricePaise === 0 ? "Free" : formatPrice(plan.pricePaise)}
@@ -282,8 +282,8 @@ const SubscriptionsPage = () => {
                 </div>
 
                 <p
-                  className={`relative mt-6 text-sm leading-6 ${
-                    isLightTheme ? "text-slate-600" : "text-gray-300"
+                  className={`relative mt-12 text-sm leading-6 ${
+                    isLightTheme ? "text-slate-600" : "text-slate-200"
                   }`}
                 >
                   {plan.description}

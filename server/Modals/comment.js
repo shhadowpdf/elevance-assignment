@@ -13,6 +13,7 @@ const commentschema = mongoose.Schema(
     },
     commentbody: { type: String },
     usercommented: { type: String },
+    userResidentialState: { type: String },
       likes: [
         {
           type: mongoose.Schema.Types.ObjectId,
