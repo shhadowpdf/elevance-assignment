@@ -19,6 +19,7 @@ interface OtpPromptDialogProps {
   error?: string;
   method: "mobile" | "email";
   target: string;
+  mobileOtp?: string;
   mandatory?: boolean;
 }
 
@@ -31,6 +32,7 @@ const OtpPromptDialog = ({
   error,
   method,
   target,
+  mobileOtp,
   mandatory = false,
 }: OtpPromptDialogProps) => {
   const [otp, setOtp] = useState("");
@@ -85,6 +87,9 @@ const OtpPromptDialog = ({
               onChange={(event) => setOtp(event.target.value)}
               maxLength={6}
             />
+            {method === "mobile" && mobileOtp ? (
+              <p className="text-sm text-slate-600">Your mobile OTP: <span className="font-semibold text-slate-300">{mobileOtp}</span></p>
+            ) : null}
           </div>
           {(validationError || error) && (
             <p className="text-sm text-red-500">{validationError || error}</p>

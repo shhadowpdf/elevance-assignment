@@ -285,10 +285,10 @@ socket.on("offer", async ({ from, sdp, name }: RemoteOffer) => {
     setIsScreenSharing(false);
   }
 
-  async function getRecordingStream() {
+  async function getRecordingStream(): Promise<MediaStream> {
     if (!navigator.mediaDevices?.getDisplayMedia) {
       toast.error("Display recording is not supported.");
-      return;
+      throw new Error("Display recording is not supported.");
     }
 
     const displayStream = await (navigator.mediaDevices as any).getDisplayMedia({

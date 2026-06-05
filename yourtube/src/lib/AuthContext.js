@@ -18,6 +18,7 @@ export const UserProvider = ({ children }) => {
   const [otpError, setOtpError] = useState("");
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [pendingAuthUser, setPendingAuthUser] = useState(null);
+  const [mobileOtp, setMobileOtp] = useState("");
   const SOUTH_STATES = ["Tamil Nadu", "Kerala", "Karnataka", "Andhra Pradesh", "Telangana"];
 
   const maskMobile = (mobile) => {
@@ -50,13 +51,18 @@ export const UserProvider = ({ children }) => {
       const res = await axiosInstance.post("/user/send-otp", {
         method,
         target: method === "mobile" ? user.mobile : user.email,
-        user
-      })
-      console.log(res.data)
+        user,
+      });
+      if (method === "mobile" && res?.data?.otp) {
+        setMobileOtp(res.data.otp);
+      } else {
+        setMobileOtp("");
+      }
     } catch (error) {
       console.error("Error sending OTP:", error);
+      setMobileOtp("");
     }
-  }
+  };
   const login = async (userdata) => {
     const state = await getResidentialState();
     const normalizedUser = userdata
@@ -265,13 +271,17 @@ export const UserProvider = ({ children }) => {
       {children}
       <OtpPromptDialog
         open={otpDialogOpen}
-        onOpenChange={setOtpDialogOpen}
+        onOpenChange={(open) => {
+          setOtpDialogOpen(open);
+          if (!open) setMobileOtp("");
+        }}
         onSubmit={verifyOtp}
         onResend={resendOtp}
         loading={isVerifyingOtp}
         error={otpError}
         method={otpMethod}
         target={otpTarget}
+        mobileOtp={mobileOtp}
         mandatory={true}
       />
     </UserContext.Provider>
