@@ -1,8 +1,20 @@
 import comment from "../Modals/comment.js";
 import mongoose from "mongoose";
 
+const containsSpecialCharacters = (text) => {
+  if (typeof text !== "string") return false;
+  return !/^[\p{L}\p{N}\s.,!?"'()\-:;]+$/u.test(text);
+};
+
 export const postcomment = async (req, res) => {
   const commentdata = req.body;
+  const { commentbody } = commentdata;
+
+  if (!commentbody || containsSpecialCharacters(commentbody)) {
+    return res.status(400).json({
+      message: "Comments may not contain special characters.",
+    });
+  }
   const postcomment = new comment(commentdata);
   try {
     const savedComment = await postcomment.save();
@@ -41,6 +53,11 @@ export const editcomment = async (req, res) => {
   const { commentbody } = req.body;
   if (!mongoose.Types.ObjectId.isValid(_id)) {
     return res.status(404).send("comment unavailable");
+  }
+  if (!commentbody || containsSpecialCharacters(commentbody)) {
+    return res.status(400).json({
+      message: "Comments may not contain special characters.",
+    });
   }
   try {
     const updatecomment = await comment.findByIdAndUpdate(

@@ -32,6 +32,7 @@ const Comments: React.FC<{ videoId: string }> = ({ videoId }) => {
   const [selectedLanguages, setSelectedLanguages] = useState<Record<string, string>>({});
   const [translations, setTranslations] = useState<Record<string, Record<string, string>>>({});
   const [translating, setTranslating] = useState<Record<string, boolean>>({});
+  const [commentError, setCommentError] = useState("");
 
   useEffect(() => {
       loadComments();
@@ -53,9 +54,18 @@ const Comments: React.FC<{ videoId: string }> = ({ videoId }) => {
   if (loading) {
     return <div>Loading history...</div>;
   }
+  const commentContainsSpecialCharacters = (text: string) => {
+    return !/^[\p{L}\p{N}\s.,!?"'()\-:;]+$/u.test(text);
+  };
+
   const handleSubmitComment = async () => {
     if (!user || !newComment.trim()) return;
+    if (commentContainsSpecialCharacters(newComment)) {
+      setCommentError("Comments may not contain special characters.");
+      return;
+    }
 
+    setCommentError("");
     setIsSubmitting(true);
     try {
       const res = await axiosInstance.post("/comment/postcomment", {
@@ -81,7 +91,10 @@ const Comments: React.FC<{ videoId: string }> = ({ videoId }) => {
         setComments([newCommentObj, ...comments]);
       }
       setNewComment("");
-    } catch (error) {
+    } catch (error: any) {
+      setCommentError(
+        error?.response?.data?.message || "Unable to add comment at this time."
+      );
       console.error("Error adding comment:", error);
     } finally {
       setIsSubmitting(false);
@@ -171,6 +184,11 @@ const Comments: React.FC<{ videoId: string }> = ({ videoId }) => {
 
   const handleUpdateComment = async () => {
     if (!editText.trim()) return;
+    if (commentContainsSpecialCharacters(editText)) {
+      setCommentError("Comments may not contain special characters.");
+      return;
+    }
+    setCommentError("");
     try {
       const res = await axiosInstance.post(
         `/comment/editcomment/${editingCommentId}`,
@@ -185,7 +203,10 @@ const Comments: React.FC<{ videoId: string }> = ({ videoId }) => {
         setEditingCommentId(null);
         setEditText("");
       }
-    } catch (error) {
+    } catch (error: any) {
+      setCommentError(
+        error?.response?.data?.message || "Unable to update comment at this time."
+      );
       console.log(error);
     }
   };
@@ -214,9 +235,15 @@ const Comments: React.FC<{ videoId: string }> = ({ videoId }) => {
             <Textarea
               placeholder="Add a comment..."
               value={newComment}
-              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setNewComment(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => {
+                setNewComment(e.target.value);
+                if (commentError) setCommentError("");
+              }}
               className="min-h-[80px] resize-none border-0 border-b-2 rounded-none focus-visible:ring-0"
             />
+            {commentError && (
+              <p className="text-sm text-red-600">{commentError}</p>
+            )}
             <div className="flex gap-2 justify-end">
               <Button
                 variant="ghost"
