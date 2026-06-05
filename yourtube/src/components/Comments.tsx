@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
+import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useUser } from "@/lib/AuthContext";
 import axiosInstance from "@/lib/axiosinstance";
@@ -15,6 +16,8 @@ interface Comment {
   commentbody: string;
   usercommented: string;
   commentedon: string;
+  likes?: string[];
+  dislikes?: string[];
 }
 const Comments = ({ videoId }: any) => {
   const [comments, setComments] = useState<Comment[]>([]);
@@ -32,6 +35,7 @@ const Comments = ({ videoId }: any) => {
     try {
       const res = await axiosInstance.get(`/comment/${videoId}`);
       setComments(res.data);
+      console.log(res.data)
     } catch (error) {
       console.log(error);
     } finally {
@@ -56,10 +60,12 @@ const Comments = ({ videoId }: any) => {
         const newCommentObj: Comment = {
           _id: Date.now().toString(),
           videoid: videoId,
-          userid: user._id,
+          userid: { _id: user._id, image: user.image },
           commentbody: newComment,
           usercommented: user.name || "Anonymous",
           commentedon: new Date().toISOString(),
+          likes: [],
+          dislikes: [],
         };
         setComments([newCommentObj, ...comments]);
       }
@@ -68,6 +74,56 @@ const Comments = ({ videoId }: any) => {
       console.error("Error adding comment:", error);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleLike = async (commentId: string) => {
+    if (!user) return;
+    try {
+      const res = await axiosInstance.post(`/comment/like/${commentId}`, {
+        userId: user._id,
+      });
+      setComments((prev) =>
+        prev.map((c) => {
+          if (c._id !== commentId) return c;
+          const likes = Array.from(c.likes || []);
+          const dislikes = Array.from(c.dislikes || []);
+          if (res.data.liked) {
+            if (!likes.includes(user._id)) likes.push(user._id);
+            return { ...c, likes, dislikes: dislikes.filter((d) => d !== user._id) };
+          }
+          return { ...c, likes: likes.filter((l) => l !== user._id) };
+        })
+      );
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleDislike = async (commentId: string) => {
+    if (!user) return;
+    try {
+      const res = await axiosInstance.post(`/comment/dislike/${commentId}`, {
+        userId: user._id,
+      });
+      if (res.data.deleted) {
+        setComments((prev) => prev.filter((c) => c._id !== commentId));
+        return;
+      }
+      setComments((prev) =>
+        prev.map((c) => {
+          if (c._id !== commentId) return c;
+          const likes = Array.from(c.likes || []);
+          const dislikes = Array.from(c.dislikes || []);
+          if (res.data.disliked) {
+            if (!dislikes.includes(user._id)) dislikes.push(user._id);
+            return { ...c, dislikes, likes: likes.filter((l) => l !== user._id) };
+          }
+          return { ...c, dislikes: dislikes.filter((d) => d !== user._id) };
+        })
+      );
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -191,16 +247,42 @@ const Comments = ({ videoId }: any) => {
                 ) : (
                   <>
                     <p className="text-sm">{comment.commentbody}</p>
-                    {comment.userid._id === user?._id && (
-                      <div className="flex gap-2 mt-2 text-sm text-gray-500">
-                        <button onClick={() => handleEdit(comment)}>
-                          Edit
-                        </button>
-                        <button onClick={() => handleDelete(comment._id)}>
-                          Delete
-                        </button>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                      <Button
+                        variant={comment.likes?.includes(user?._id || "") ? "default" : "ghost"}
+                        onClick={() => handleLike(comment._id)}
+                        disabled={!user}
+                        className="flex items-center gap-1"
+                      >
+                        <ThumbsUp
+                          size={16}
+                          className={comment.likes?.includes(user?._id || "") ? "text-blue-600" : "text-gray-500"}
+                        />
+                        <span className={comment.likes?.includes(user?._id || "") ? "text-blue-600" : "text-gray-500"}>{comment.likes?.length || 0}</span>
+                      </Button>
+                      <Button
+                        variant={comment.dislikes?.includes(user?._id || "") ? "default" : "ghost"}
+                        onClick={() => handleDislike(comment._id)}
+                        disabled={!user}
+                        className="flex items-center gap-1"
+                      >
+                        <ThumbsDown
+                          size={16}
+                          className={comment.dislikes?.includes(user?._id || "") ? "text-red-600" : "text-gray-500"}
+                        />
+                        <span className={comment.dislikes?.includes(user?._id || "") ? "text-red-600" : "text-gray-500"}>{comment.dislikes?.length || 0}</span>
+                      </Button>
+                      {((comment.userid && (comment.userid as any)._id) || comment.userid) === user?._id && (
+                        <div className="flex gap-2 ml-4 text-sm text-gray-500">
+                          <button onClick={() => handleEdit(comment)}>
+                            Edit
+                          </button>
+                          <button onClick={() => handleDelete(comment._id)}>
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </>
                 )}
               </div>
