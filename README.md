@@ -1,38 +1,74 @@
-# YourTube 2.0
+# YourTube
 
-A monorepo for a YouTube-inspired full-stack application with a Next.js frontend and an Express/MongoDB backend. The frontend uses Firebase for auth, OTP-based verification flows, and protected video playback. The backend exposes REST APIs for users, videos, likes, watch later, history, and comments, plus real-time WebRTC signaling via Socket.IO for call rooms.
+A full-stack YouTube-inspired application built as a monorepo with a Next.js frontend and an Express/MongoDB backend.
+
+This repository includes:
+- A modern React/Next.js frontend with Firebase login and OTP verification.
+- An Express API server with MongoDB for user profiles, video metadata, comments, likes, history, downloads, and plan-based access.
+- A protected watch session flow and real-time call room signaling via Socket.IO.
+
+## Screenshots
+
+![Homepage](screenshots/image.png)
+
+![Watch Page](screenshots/image-1.png)
+
+![Subscriptions / Plans](screenshots/image-2.png)
+
+![call](screenshots/image-3.png)
+
+![downloads](screenshots/image-4.png)
 
 ## Repository structure
 
-- `server/` - Express backend server
-  - `index.js` - server entry point
-  - `routes/` - API route handlers for auth, video, like, watchlater, history, comment
-  - `controllers/` - business logic for server endpoints
-  - `Modals/` - Mongoose model definitions
-  - `utils/` - utilities such as mailer and plan configuration
-- `yourtube/` - Next.js frontend application
-  - `src/pages/` - app pages, including home, watch, history, liked, subscriptions, downloads, call rooms
-  - `src/components/` - reusable UI components and page sections
-  - `src/lib/` - auth context, API axios instance, Firebase config, utility helpers
-  - `src/styles/` - global styling
+- `server/` – Express backend server
+  - `index.js` – server entry point
+  - `routes/` – API route definitions
+  - `controllers/` – request handlers and business logic
+  - `Modals/` – Mongoose models
+  - `utils/` – utilities such as mailer and plan configuration
+- `yourtube/` – Next.js frontend
+  - `src/pages/` – app routes and page-level components
+  - `src/components/` – reusable UI components
+  - `src/lib/` – auth context, API axios instance, Firebase config, utility helpers
+  - `src/styles/` – global CSS
+  - `public/` – static assets and placeholder screenshot screenshots/images
 
-## Key features
+## Core features
 
-- User authentication with Firebase and OTP verification
-- Video browsing and watch pages with related videos and comments
-- Protected playback flow using watch session tokens
-- Watch plans and plan-based viewing limits
-- Watch later, history, likes, and comments support
-- Real-time call room creation and peer signaling via Socket.IO
-- Responsive layout with dark/light theming
-- Next.js frontend with Tailwind CSS and Radix UI components
+- Firebase authentication via Google sign-in
+- OTP verification flow for email and mobile
+- First-time mobile number collection for new users
+- Video browsing with related recommendations
+- Comments, likes, watch later, history, and downloads
+- Plan-based access controls and watching limits
+- Gold-only unlimited downloads; non-Gold users limited to 1 download per day
+- Protected playback sessions and watch session enforcement
+- Real-time call room signaling for peer connections
+- Responsive UI with dark / light theming
 
-## Technologies
+## Authentication flow
 
-- Frontend: Next.js, React, TypeScript, Tailwind CSS, Radix UI, Firebase, Axios
-- Backend: Node.js, Express, MongoDB, Mongoose, Socket.IO, dotenv
-- Auth / notifications: Firebase auth, OTP-based verification
-- Streaming: protected video streaming endpoints from the backend
+1. User signs in with Google through Firebase.
+2. The app calls backend `/user/login`.
+3. If the user is new and lacks a mobile number, `MobileNumberDialog` prompts for it.
+4. The mobile number is saved to the user profile.
+5. OTP verification begins and the user enters the OTP in `OtpPromptDialog`.
+6. User is authenticated and the profile is stored in local storage.
+
+## Download / plan rules
+
+- Only Gold users have unlimited downloads.
+- Bronze, Silver, and Free users are limited to 1 download per day.
+- Video watch limits increase with paid plans.
+- Paid plans are lifetime unlocks in this app.
+
+## Technology stack
+
+- Frontend: Next.js, React, TypeScript, Tailwind CSS, Radix UI
+- Backend: Node.js, Express, MongoDB, Mongoose, Socket.IO
+- Authentication: Firebase Authentication, OTP verification
+- HTTP client: Axios
 
 ## Prerequisites
 
@@ -45,7 +81,7 @@ A monorepo for a YouTube-inspired full-stack application with a Next.js frontend
 
 ### Backend (`server/`)
 
-Create a `.env` file in `server/` with at least:
+Create a `.env` file in `server/` with:
 
 ```env
 DB_URL=<your mongodb connection string>
@@ -53,28 +89,27 @@ PUBLIC_URL=http://localhost:3000
 PORT=5000
 ```
 
-- `DB_URL` is the MongoDB connection URI.
-- `PUBLIC_URL` is the frontend origin allowed by CORS.
-- `PORT` is optional; defaults to `5000`.
+- `DB_URL` – MongoDB connection URI
+- `PUBLIC_URL` – frontend origin allowed by CORS
+- `PORT` – optional, defaults to `5000`
 
 ### Frontend (`yourtube/`)
 
-Set `NEXT_PUBLIC_BACKEND_URL` in `yourtube/next.config.ts` environment or in `.env.local`:
+Create `.env.local` or configure `NEXT_PUBLIC_BACKEND_URL` in `yourtube/next.config.ts`:
 
 ```env
 NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
 ```
 
-Ensure Firebase is configured in `src/lib/firebase.js` and any required API keys are present there.
+Ensure Firebase is configured in `yourtube/src/lib/firebase.js`.
 
 ## Install dependencies
 
-From the repo root, install server and frontend dependencies separately:
+From the repo root:
 
 ```bash
 cd server
 npm install
-
 cd ../yourtube
 npm install
 ```
@@ -95,24 +130,39 @@ cd yourtube
 npm run dev
 ```
 
-Then open the frontend at `http://localhost:3000`.
+Open the frontend at `http://localhost:3000`.
 
-## Available scripts
+## Backend API summary
 
-### Backend
+- `POST /user/login` – login or create a user
+- `POST /user/send-otp` – generate and send OTP
+- `POST /user/verify-otp` – verify OTP
+- `PATCH /user/update/:id` – update user profile (mobile, channel name, description)
+- `GET /user/:id` – get user profile data
+- `POST /user/download/:videoId` – record a download
+- `GET /user/downloads/:id` – fetch downloads for a user
+- `POST /user/payment/order` – create a payment order
+- `POST /user/payment/verify` – verify payment
+- `POST /user/payment/test-email` – test email delivery
 
-- `npm run start` - run the production server from `server/index.js`
-- `npm run dev` - run server with `nodemon`
+## Frontend scripts
 
-### Frontend
+From `yourtube/`:
 
-- `npm run dev` - start Next.js in development mode
-- `npm run build` - build the production app
-- `npm run start` - start the production Next.js server
-- `npm run lint` - run Next.js linting
+- `npm run dev` – start the development app
+- `npm run build` – build production files
+- `npm run start` – run the built app
+- `npm run lint` – lint the frontend code
+
+## Deployment notes
+
+- Use a persistent MongoDB database in production.
+- Replace the placeholder OTP store with a real provider if needed.
+- Configure Firebase and backend URLs for your deployment environment.
 
 ## Notes
 
-- This README is based on the current workspace source files.
-- The backend expects a MongoDB URI and a matching frontend backend URL.
-- The frontend uses `NEXT_PUBLIC_BACKEND_URL` for API requests and the backend uses `PUBLIC_URL` for CORS.
+- The README was updated for the current repository structure and recent code changes.
+- Replace the screenshot placeholders with real screenshots in `yourtube/public/`.
+- The frontend stores authenticated user state in `localStorage` and restores it on reload.
+- The backend currently uses an in-memory OTP store, so OTP state is not preserved across server restarts.
