@@ -4,6 +4,7 @@ import { createContext } from "react";
 import { provider, auth } from "./firebase";
 import axiosInstance from "./axiosinstance";
 import { useEffect, useContext } from "react";
+import MobileNumberDialog from "../components/MobileNumberDialog";
 import OtpPromptDialog from "../components/OtpPromptDialog";
 import axios from "axios";
 
@@ -19,6 +20,9 @@ export const UserProvider = ({ children }) => {
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [pendingAuthUser, setPendingAuthUser] = useState(null);
   const [mobileOtp, setMobileOtp] = useState("");
+  const [mobileDialogOpen, setMobileDialogOpen] = useState(false);
+  const [mobileDialogLoading, setMobileDialogLoading] = useState(false);
+  const [mobileDialogError, setMobileDialogError] = useState("");
   const SOUTH_STATES = ["Tamil Nadu", "Kerala", "Karnataka", "Andhra Pradesh", "Telangana"];
 
   const maskMobile = (mobile) => {
@@ -34,6 +38,9 @@ export const UserProvider = ({ children }) => {
   };
 
   const decideOtpMethod = (userdata) => {
+    if (userdata?.mobile) {
+      return "mobile";
+    }
     if (SOUTH_STATES.includes(userdata.residentialState)) {
       return "email";
     }
@@ -46,6 +53,16 @@ export const UserProvider = ({ children }) => {
     }
     return maskEmail(userdata.email);
   };
+
+  const startOtpForUser = async (userdata) => {
+    const method = decideOtpMethod(userdata);
+    setOtpMethod(method);
+    setOtpTarget(formatOtpTarget(method, userdata));
+    setPendingAuthUser(userdata);
+    setOtpDialogOpen(true);
+    await finalizeLogin(method, userdata);
+  };
+
   const finalizeLogin = async (method, user) => {
     try {
       const res = await axiosInstance.post("/user/send-otp", {
@@ -69,18 +86,21 @@ export const UserProvider = ({ children }) => {
       ? {
         ...userdata,
         id: userdata.id || userdata._id,
-        residentialState: state || userdata.residentialState
+        residentialState: state || userdata.residentialState,
       }
       : null;
 
     if (!normalizedUser) return;
 
-    const method = decideOtpMethod(normalizedUser);
-    setOtpMethod(method);
-    setOtpTarget(formatOtpTarget(method, normalizedUser));
     setPendingAuthUser(normalizedUser);
-    setOtpDialogOpen(true);
-    await finalizeLogin(method, normalizedUser);
+
+    if (!normalizedUser.mobile) {
+      setMobileDialogError("");
+      setMobileDialogOpen(true);
+      return;
+    }
+
+    await startOtpForUser(normalizedUser);
   };
 
   const updateUser = (userdata) => {
@@ -165,6 +185,29 @@ export const UserProvider = ({ children }) => {
       );
     } finally {
       setIsVerifyingOtp(false);
+    }
+  };
+
+  const handleMobileSubmit = async (mobile) => {
+    if (!pendingAuthUser) return;
+    setMobileDialogError("");
+    setMobileDialogLoading(true);
+
+    try {
+      const response = await axiosInstance.patch(
+        `/user/update/${pendingAuthUser.id}`,
+        { mobile }
+      );
+      const updatedUser = response.data;
+      setPendingAuthUser(updatedUser);
+      setMobileDialogOpen(false);
+      await startOtpForUser(updatedUser);
+    } catch (error) {
+      setMobileDialogError(
+        error?.response?.data?.message || "Failed to save your mobile number. Please try again."
+      );
+    } finally {
+      setMobileDialogLoading(false);
     }
   };
 
@@ -282,6 +325,14 @@ export const UserProvider = ({ children }) => {
         method={otpMethod}
         target={otpTarget}
         mobileOtp={mobileOtp}
+        mandatory={true}
+      />
+      <MobileNumberDialog
+        open={mobileDialogOpen}
+        onOpenChange={setMobileDialogOpen}
+        onSubmit={handleMobileSubmit}
+        loading={mobileDialogLoading}
+        error={mobileDialogError}
         mandatory={true}
       />
     </UserContext.Provider>
