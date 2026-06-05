@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import { io, Socket } from "socket.io-client";
 import { useUser } from "@/lib/AuthContext";
+import { toast } from "sonner";
 
 const SIGNALING_URL = process.env.NEXT_PUBLIC_SIGNALING_URL || "http://localhost:5000";
 
@@ -12,6 +13,7 @@ type Props = {
 type RemoteOffer = {
   from: string;
   sdp: RTCSessionDescriptionInit;
+  name?: string;
 };
 
 type RemoteAnswer = {
@@ -37,8 +39,11 @@ export default function VideoCall({ roomId }: Props) {
   const localStreamRef = useRef<MediaStream | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const displayStreamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const mixedStreamRef = useRef<MediaStream | null>(null);
   const pcsRef = useRef<Record<string, RTCPeerConnection>>({});
   const [connectedPeers, setConnectedPeers] = useState<string[]>([]);
+  const [remoteNames, setRemoteNames] = useState<Record<string, string>>({});
   const hasRemote = connectedPeers.length > 0;
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
@@ -63,7 +68,7 @@ export default function VideoCall({ roomId }: Props) {
           localVideoRef.current.srcObject = stream;
         }
         if (!mounted) return;
-        socket.emit("join-room", roomId);
+        socket.emit("join-room", { roomId, name: user?.name || "Guest" });
       } catch (err) {
         console.error("getUserMedia error:", err);
         setErrorMessage("Please allow camera and microphone access to start the call.");
@@ -76,14 +81,20 @@ export default function VideoCall({ roomId }: Props) {
       console.log("signaling connected", socket.id);
     });
 
-    socket.on("new-peer", async (peerId: string) => {
+socket.on("new-peer", async ({ peerId, name }: { peerId: string; name?: string }) => {
       if (peerId === socket.id) return;
+      if (name) {
+        setRemoteNames((prev) => ({ ...prev, [peerId]: name }));
+      }
       await createPeerConnection(peerId, true);
       setConnectedPeers((p) => [...p, peerId]);
     });
 
-    socket.on("offer", async ({ from, sdp }: RemoteOffer) => {
+socket.on("offer", async ({ from, sdp, name }: RemoteOffer) => {
       if (from === socket.id) return;
+      if (name) {
+        setRemoteNames((prev) => ({ ...prev, [from]: name }));
+      }
       await createPeerConnection(from, false);
       setConnectedPeers((p) => (p.includes(from) ? p : [...p, from]));
       const pc = pcsRef.current[from];
@@ -187,7 +198,7 @@ export default function VideoCall({ roomId }: Props) {
     if (isInitiator) {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-      socket.emit("offer", { to: peerId, sdp: pc.localDescription });
+      socket.emit("offer", { to: peerId, sdp: pc.localDescription, name: user?.name || "Guest" });
     }
 
     return pc;
@@ -202,10 +213,10 @@ export default function VideoCall({ roomId }: Props) {
     try {
       const screenStream = await (navigator.mediaDevices as any).getDisplayMedia({ video: true, audio: true });
       screenStreamRef.current = screenStream;
-      setIsScreenSharing(true);
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = screenStream;
       }
+      setIsScreenSharing(true);
 
       const screenVideoTrack = screenStream.getVideoTracks()[0];
       const screenAudioTrack = screenStream.getAudioTracks()[0];
@@ -228,9 +239,11 @@ export default function VideoCall({ roomId }: Props) {
         }
       });
 
-      screenVideoTrack.onended = () => {
-        stopScreenShare();
-      };
+      if (screenVideoTrack) {
+        screenVideoTrack.onended = () => {
+          stopScreenShare();
+        };
+      }
       setErrorMessage("");
     } catch (e) {
       console.error("screen share failed", e);
@@ -274,20 +287,66 @@ export default function VideoCall({ roomId }: Props) {
 
   async function getRecordingStream() {
     if (!navigator.mediaDevices?.getDisplayMedia) {
-      throw new Error("Display recording is not supported.");
+      toast.error("Display recording is not supported.");
+      return;
     }
 
-    // Always capture the full browser display/tab when recording.
-    return await navigator.mediaDevices.getDisplayMedia({
-      video: true,
+    const displayStream = await (navigator.mediaDevices as any).getDisplayMedia({
+      video: { cursor: "always" },
       audio: true,
     });
+
+    displayStreamRef.current = displayStream;
+    const displayVideoTrack = displayStream.getVideoTracks()[0];
+    if (!displayVideoTrack) {
+      throw new Error("No display video track available.");
+    }
+
+    const audioTracks: MediaStreamTrack[] = [];
+    const displayAudioTrack = displayStream.getAudioTracks()[0];
+    if (displayAudioTrack) {
+      audioTracks.push(displayAudioTrack);
+    }
+
+    const localStream = localStreamRef.current;
+    if (localStream) {
+      const micTrack = localStream.getAudioTracks()[0];
+      if (micTrack) {
+        audioTracks.push(micTrack);
+      }
+    }
+
+    if (audioTracks.length === 0) {
+      const plainStream = new MediaStream([displayVideoTrack]);
+      mixedStreamRef.current = plainStream;
+      return plainStream;
+    }
+
+    const audioContext = new AudioContext();
+    const destination = audioContext.createMediaStreamDestination();
+    audioContextRef.current = audioContext;
+
+    audioTracks.forEach((track) => {
+      try {
+        const source = audioContext.createMediaStreamSource(new MediaStream([track]));
+        source.connect(destination);
+      } catch (error) {
+        console.warn("Unable to mix audio track:", error);
+      }
+    });
+
+    const mixedStream = new MediaStream([
+      displayVideoTrack,
+      ...destination.stream.getAudioTracks(),
+    ]);
+
+    mixedStreamRef.current = mixedStream;
+    return mixedStream;
   }
 
   async function startRecording() {
     try {
       const recordingStream = await getRecordingStream();
-      displayStreamRef.current = recordingStream;
       recordedChunksRef.current = [];
 
       const options = [
@@ -308,10 +367,6 @@ export default function VideoCall({ roomId }: Props) {
 
       if (!recorder) {
         setErrorMessage("MediaRecorder is not supported in this browser.");
-        if (displayStreamRef.current && displayStreamRef.current !== screenStreamRef.current) {
-          displayStreamRef.current.getTracks().forEach((track) => track.stop());
-          displayStreamRef.current = null;
-        }
         return;
       }
 
@@ -332,10 +387,6 @@ export default function VideoCall({ roomId }: Props) {
           URL.revokeObjectURL(url);
           document.body.removeChild(a);
         }, 100);
-        if (displayStreamRef.current && displayStreamRef.current !== screenStreamRef.current) {
-          displayStreamRef.current.getTracks().forEach((track) => track.stop());
-          displayStreamRef.current = null;
-        }
       };
 
       mediaRecorderRef.current = recorder;
@@ -345,8 +396,8 @@ export default function VideoCall({ roomId }: Props) {
       setRecordingDuration("00:00");
       setErrorMessage("");
     } catch (err) {
-      console.error("getDisplayMedia error:", err);
-      setErrorMessage("Screen recording was cancelled or blocked.");
+      console.error("Recording error:", err);
+      toast.error("Unable to start recording. Make sure the call has joined and permissions are granted.");
     }
   }
 
@@ -355,10 +406,22 @@ export default function VideoCall({ roomId }: Props) {
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current = null;
     }
-    if (displayStreamRef.current && displayStreamRef.current !== screenStreamRef.current) {
+
+    if (mixedStreamRef.current) {
+      mixedStreamRef.current.getTracks().forEach((track) => track.stop());
+      mixedStreamRef.current = null;
+    }
+
+    if (displayStreamRef.current) {
       displayStreamRef.current.getTracks().forEach((track) => track.stop());
       displayStreamRef.current = null;
     }
+
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
+
     setIsRecording(false);
     setRecordingStartTime(null);
     setRecordingDuration("00:00");
@@ -368,9 +431,17 @@ export default function VideoCall({ roomId }: Props) {
     if (isRecording) {
       stopRecording();
     }
+    if (mixedStreamRef.current) {
+      mixedStreamRef.current.getTracks().forEach((track) => track.stop());
+      mixedStreamRef.current = null;
+    }
     if (displayStreamRef.current) {
       displayStreamRef.current.getTracks().forEach((track) => track.stop());
       displayStreamRef.current = null;
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
     }
 
     const socket = socketRef.current;
@@ -411,7 +482,9 @@ export default function VideoCall({ roomId }: Props) {
           <div className="w-full md:h-[28rem] max-h-[70vh] bg-black rounded overflow-hidden shadow-xl shadow-slate-900/20">
             <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-contain transition-transform duration-700 ease-out" />
           </div>
-          <div className="mt-2 text-sm text-gray-700">Remote</div>
+          <div className="mt-2 text-sm text-gray-700">
+            {hasRemote ? `Remote (${connectedPeers.map((id) => remoteNames[id] || "User").join(", ")})` : "Waiting for remote..."}
+          </div>
         </div>
       </div>
 
@@ -485,7 +558,14 @@ export default function VideoCall({ roomId }: Props) {
       {errorMessage ? <div className="text-sm text-red-600">{errorMessage}</div> : null}
       <div className="text-sm text-slate-600">
         Participants: {user?.name || "You"}
-        {connectedPeers.length > 0 && `, ${connectedPeers.length} other${connectedPeers.length > 1 ? "s" : ""} connected`}
+        {connectedPeers.length > 0 && (
+          <>
+            {", "}
+            {connectedPeers
+              .map((id) => remoteNames[id] || "User")
+              .join(", ")}
+          </>
+        )}
       </div>
     </div>
   );

@@ -11,7 +11,7 @@ const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [isLightTheme, setIsLightTheme] = useState(false);
+  const [isLightTheme, setIsLightTheme] = useState(true);
   const [otpDialogOpen, setOtpDialogOpen] = useState(false);
   const [otpMethod, setOtpMethod] = useState("email");
   const [otpTarget, setOtpTarget] = useState("");

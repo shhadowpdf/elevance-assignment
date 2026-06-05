@@ -43,21 +43,21 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: process.env.PUBLIC_URL || "*",
+    origin: process.env.PUBLIC_URL,
   },
 });
 
 io.on("connection", (socket) => {
   console.log("socket connected:", socket.id);
 
-  socket.on("join-room", (roomId) => {
+  socket.on("join-room", ({ roomId, name }) => {
     socket.join(roomId);
-    socket.to(roomId).emit("new-peer", socket.id);
+    socket.to(roomId).emit("new-peer", { peerId: socket.id, name });
   });
 
-  socket.on("offer", ({ to, sdp }) => {
+  socket.on("offer", ({ to, sdp, name }) => {
     if (!to) return;
-    io.to(to).emit("offer", { from: socket.id, sdp });
+    io.to(to).emit("offer", { from: socket.id, sdp, name });
   });
 
   socket.on("answer", ({ to, sdp }) => {
